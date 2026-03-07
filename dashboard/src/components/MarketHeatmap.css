@@ -1,0 +1,102 @@
+.heatmap-container {
+    padding: 24px;
+    background: var(--surface-bg);
+    border-radius: 8px;
+    min-height: calc(100vh - 128px);
+    margin: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.heatmap-header h1 {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 4px;
+}
+
+.heatmap-header p {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-bottom: 24px;
+}
+
+.heatmap-wrapper {
+    background: #1e222d;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.heatmap-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 400px;
+    font-size: 18px;
+    color: var(--text-muted);
+}
+
+/* Tooltip Styling */
+.heatmap-tooltip {
+    padding: 12px;
+    background: #2a2e39;
+    border: 1px solid #363c4e;
+    border-radius: 4px;
+}
+
+.heatmap-tooltip .header {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 4px;
+    color: #fff;
+}
+
+.heatmap-tooltip .price {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.heatmap-tooltip .change {
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 6px;
+}
+
+.heatmap-tooltip .change.up { color: #10b981; }
+.heatmap-tooltip .change.down { color: #ef4444; }
+
+.heatmap-tooltip .sector {
+    font-size: 11px;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Legend Styling */
+.heatmap-legend {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-top: 24px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.legend-item .box {
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+}
+
+.box.strong-up { background: #10b981; }
+.box.up { background: #059669; }
+.box.neutral { background: #4b5563; }
+.box.down { background: #dc2626; }
+.box.strong-down { background: #ef4444; }

@@ -1,0 +1,376 @@
+/* ────────────────────────────────────────────────────────────
+   Charts Enhanced – premium styles
+   ──────────────────────────────────────────────────────────── */
+
+/* ── Page header ──────────────────────────────────────────── */
+.charts-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-top: 8px;
+}
+
+.charts-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+.charts-sub {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ── Live price badge ─────────────────────────────────────── */
+.live-price-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 30px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.live-price-badge.badge-up {
+  background: rgba(38, 166, 154, 0.12);
+  border-color: rgba(38, 166, 154, 0.4);
+  color: #26a69a;
+}
+
+.live-price-badge.badge-down {
+  background: rgba(239, 83, 80, 0.12);
+  border-color: rgba(239, 83, 80, 0.4);
+  color: #ef5350;
+}
+
+.badge-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse-badge 1.5s infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulse-badge {
+  0%   { opacity: 1; transform: scale(1); }
+  50%  { opacity: 0.4; transform: scale(1.4); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.badge-symbol {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  opacity: 0.8;
+}
+
+.badge-price {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.badge-change {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* ── Timeframe & overlay toolbar ─────────────────────────── */
+.chart-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  background: var(--surface-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+}
+
+.tf-group,
+.overlay-group {
+  display: flex;
+  gap: 4px;
+}
+
+.tf-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tf-btn:hover   { background: var(--item-hover); color: var(--brand-primary); }
+.tf-active      { background: var(--brand-primary) !important; color: #fff !important; border-color: var(--brand-primary) !important; }
+
+.overlay-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.overlay-active-gold   { background: rgba(245,158,11,.15); border-color: #f59e0b; color: #f59e0b !important; }
+.overlay-active-purple { background: rgba(139,92,246,.15); border-color: #8b5cf6; color: #8b5cf6 !important; }
+.overlay-active-blue   { background: rgba(56,126,209,.15); border-color: var(--brand-primary); color: var(--brand-primary) !important; }
+
+.chart-company-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.company-name-chip {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.sector-chip {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: rgba(56,126,209,.12);
+  color: var(--brand-primary);
+  border: 1px solid rgba(56,126,209,.25);
+}
+
+/* ── OHLCV stats panel ────────────────────────────────────── */
+.chart-stats-panel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding: 10px 16px;
+  background: var(--surface-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+}
+
+.stat-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 60px;
+}
+
+.stat-chip-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.stat-chip-value {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-top: 2px;
+}
+
+/* Range bar */
+.range-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 200px;
+  margin-left: auto;
+}
+
+.range-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.range-track {
+  position: relative;
+  flex: 1;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.range-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: linear-gradient(to right, #ef5350, #26a69a);
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+.range-thumb {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #387ed1;
+  border: 2px solid #fff;
+  box-shadow: 0 0 4px rgba(56,126,209,.6);
+  transform: translate(-50%, -50%);
+  transition: left 0.6s ease;
+}
+
+/* ── Main chart card ──────────────────────────────────────── */
+.chart-main-card {
+  background: var(--surface-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+  transition: background-color 0.3s ease;
+  margin-bottom: 24px;
+}
+
+.chart-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  gap: 16px;
+  color: var(--text-muted);
+}
+
+.chart-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--brand-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Market heatmap ───────────────────────────────────────── */
+.market-heatmap {
+  margin-top: 8px;
+}
+
+.heatmap-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 12px;
+  color: var(--text-color);
+}
+
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+  gap: 8px;
+}
+
+.heatmap-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 8px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  user-select: none;
+}
+
+.heatmap-cell:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.15);
+}
+
+.heatmap-cell.heatmap-selected {
+  border-color: var(--brand-primary) !important;
+  box-shadow: 0 0 0 2px rgba(56,126,209,.3);
+}
+
+.heatmap-sym {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--text-color);
+  margin-bottom: 4px;
+}
+
+.heatmap-price {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.heatmap-pct {
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+/* ── Sub-charts (RSI, MACD) ─────────────────────────── */
+.sub-chart-container {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border-color);
+  position: relative;
+}
+
+.sub-chart-label {
+  position: absolute;
+  top: 5px;
+  left: 10px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  background: var(--surface-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  z-index: 5;
+}
+
+/* Active states for toolbar buttons */
+.overlay-active-purple {
+  background: rgba(139, 92, 246, 0.15) !important;
+  color: #8b5cf6 !important;
+  border-color: #8b5cf6 !important;
+}
+
+.overlay-active-gold {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #f59e0b !important;
+  border-color: #f59e0b !important;
+}
+
+.overlay-active-blue {
+  background: rgba(33, 150, 243, 0.15) !important;
+  color: #2196f3 !important;
+  border-color: #2196f3 !important;
+}
+

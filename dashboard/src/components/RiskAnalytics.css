@@ -1,0 +1,89 @@
+.risk-analytics-container {
+  padding: 24px;
+}
+
+.risk-analytics-container h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 32px;
+  color: var(--text-color);
+}
+
+.risk-analytics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+@media (max-width: 1024px) {
+  .risk-analytics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.analysis-card {
+  background: var(--surface-bg);
+  padding: 24px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+}
+
+.analysis-card h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: var(--text-color);
+}
+
+.metric-subtext {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.drawdown-info {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 16px;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+/* Override recharts tooltip for theme compatibility */
+.recharts-default-tooltip {
+  background-color: var(--surface-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow-md);
+}
+
+/* Pie Chart Label Style */
+.recharts-pie-label-text {
+  font-size: 11px;
+  fill: var(--text-color) !important;
+  font-weight: 500;
+}
+
+.analysis-card h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.analysis-card h2::before {
+  content: '';
+  width: 4px;
+  height: 18px;
+  background: var(--brand-primary);
+  border-radius: 2px;
+}
+
