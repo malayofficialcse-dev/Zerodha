@@ -271,6 +271,49 @@
   to { transform: rotate(360deg); }
 }
 
+/* ── Stock selector ───────────────────────────────────────── */
+.stock-selector {
+  display: flex;
+  gap: 10px;
+  padding: 12px 0;
+  overflow-x: auto;
+  scrollbar-width: none; /* Hide scrollbar for standard browsers */
+  margin-bottom: 20px;
+  -ms-overflow-style: none; /* Hide scrollbar for IE/Edge */
+}
+
+.stock-selector::-webkit-scrollbar {
+  display: none; /* Hide scrollbar for Chrome/Safari */
+}
+
+.stock-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--surface-bg);
+  color: var(--text-color);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-sm);
+}
+
+.stock-btn:hover {
+  border-color: var(--brand-primary);
+  background: var(--item-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(56, 126, 209, 0.15);
+}
+
+.stock-btn.active {
+  background: var(--brand-primary);
+  color: #fff;
+  border-color: var(--brand-primary);
+  box-shadow: 0 4px 15px rgba(56, 126, 209, 0.3);
+}
+
 /* ── Market heatmap ───────────────────────────────────────── */
 .market-heatmap {
   margin-top: 8px;
