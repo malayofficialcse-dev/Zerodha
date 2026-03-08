@@ -14,23 +14,39 @@
 }
 
 /* Light Theme */
-body.light-theme {
+body.light-theme,
+[data-theme='light'] {
   --bg-color: #f8fafc;
   --surface-bg: #ffffff;
+  --bg-card: #ffffff;
+  --bg-hover: rgba(0, 0, 0, 0.04);
   --text-color: #0f172a;
+  --text-main: #0f172a;
   --text-muted: #64748b;
   --border-color: #e2e8f0;
-  --item-hover: #f8fafc;
+  --item-hover: #f1f5f9;
+  --brand-primary: #387ed1;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --primary-color: #387ed1;
 }
 
 /* Dark Theme */
-body.dark-theme {
+body.dark-theme,
+[data-theme='dark'] {
   --bg-color: #0f172a;
   --surface-bg: #1e293b;
+  --bg-card: #1e293b;
+  --bg-hover: rgba(255, 255, 255, 0.05);
   --text-color: #f1f5f9;
+  --text-main: #f1f5f9;
   --text-muted: #94a3b8;
   --border-color: #334155;
   --item-hover: #334155;
+  --brand-primary: #387ed1;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --primary-color: #387ed1;
 }
 
 body {
@@ -806,4 +822,63 @@ h1, h2, h3, h4, h5, h6, p, table, th, td, span, a, label, li {
 .dashboard-container.sidebar-closed .sidebar-toggle-btn {
   left: 20px;
   bottom: 20px;
+}
+
+/* ─── Bootstrap Table Theme Overrides ───────────────────────── */
+/* Make Bootstrap .table respect the app's day/night theme */
+body.dark-theme .table,
+body.dark-theme .table th,
+body.dark-theme .table td,
+body.dark-theme .table thead th {
+  color: var(--text-color) !important;
+  border-color: var(--border-color) !important;
+  background-color: transparent !important;
+}
+
+body.dark-theme .table-bordered,
+body.dark-theme .table-bordered td,
+body.dark-theme .table-bordered th {
+  border-color: var(--border-color) !important;
+}
+
+body.dark-theme .table-hover tbody tr:hover td {
+  background-color: var(--item-hover) !important;
+  color: var(--text-color) !important;
+}
+
+body.dark-theme .table-striped tbody tr:nth-of-type(odd) td {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Bootstrap form elements in dark mode */
+body.dark-theme .form-control,
+body.dark-theme .form-select,
+body.dark-theme input, 
+body.dark-theme select,
+body.dark-theme textarea {
+  background-color: var(--surface-bg) !important;
+  color: var(--text-color) !important;
+  border-color: var(--border-color) !important;
+}
+
+body.dark-theme .form-control:focus,
+body.dark-theme .form-select:focus,
+body.dark-theme input:focus {
+  border-color: var(--brand-primary) !important;
+  box-shadow: 0 0 0 3px rgba(56, 126, 209, 0.2) !important;
+}
+
+/* Bootstrap container backgrounds */
+body.dark-theme .container-fluid,
+body.dark-theme .container {
+  background-color: transparent;
+  color: var(--text-color);
+}
+
+/* ─── Light mode explicit resets ────────────────────────────── */
+body.light-theme .table,
+body.light-theme .table th,
+body.light-theme .table td {
+  color: var(--text-color) !important;
+  border-color: var(--border-color) !important;
 }

@@ -8,6 +8,7 @@ export const ThemeProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem("theme", theme);
     document.body.className = `${theme}-theme`;
+    document.body.setAttribute("data-theme", theme);
   }, [theme]);
 
   const toggleTheme = () => {
