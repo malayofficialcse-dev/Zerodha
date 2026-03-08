@@ -3,73 +3,200 @@
   background: transparent;
 }
 
-.stock-selector {
+.stock-selection-bar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 24px;
-}
-
-.stock-btn {
-  padding: 6px 14px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
+  align-items: center;
   background: var(--surface-bg);
-  color: var(--text-muted);
-  font-weight: 500;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.2s;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  max-width: 100%;
+  overflow: hidden;
+  height: 48px;
 }
 
-.stock-btn:hover {
+.search-box {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  background: var(--bg-color);
+  border-right: 1px solid var(--border-color);
+  height: 100%;
+  min-width: 200px;
+}
+
+.search-icon {
+  color: var(--text-muted);
+  font-size: 1.2rem !important;
+  margin-right: 8px;
+}
+
+.search-box input {
+  background: transparent;
+  border: none;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  outline: none;
+  width: 100%;
+}
+
+.search-box input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.ticker-items {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  flex: 1;
+}
+
+.ticker-items::-webkit-scrollbar {
+  display: none;
+}
+
+
+.no-results {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 10px;
+  white-space: nowrap;
+}
+
+.ticker-btn {
+  padding: 6px 16px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ticker-btn:hover {
+  background: var(--item-hover);
+  color: var(--brand-primary);
+}
+
+.ticker-btn.active {
+  background: var(--brand-primary);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(56, 126, 209, 0.25);
+}
+
+.ticker-sym {
+  letter-spacing: 0.2px;
+}
+
+.chart-wrapper {
+  background: var(--surface-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+  position: relative;
+}
+
+.chart-toolbar {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 16px;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+}
+
+.toolbar-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-color);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toolbar-btn:hover {
   background: var(--item-hover);
   color: var(--brand-primary);
   border-color: var(--brand-primary);
+  transform: translateY(-1px);
 }
 
-.stock-btn.active {
+.toolbar-btn.active {
+  background: rgba(56, 126, 209, 0.1);
+  color: var(--brand-primary);
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 2px rgba(56, 126, 209, 0.1);
+}
+
+.indicator-toggles {
+  border-right: 1px solid var(--border-color);
+  margin-right: 8px;
+}
+
+.indicator-btn {
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-color);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+
+.indicator-btn:hover {
+  background: var(--item-hover);
+  color: var(--text-main);
+}
+
+.indicator-btn.active {
   background: var(--brand-primary);
-  color: #ffffff;
+  color: white;
   border-color: var(--brand-primary);
 }
 
-.intraday-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
+.intraday-header h2 {
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin: 0;
+  color: var(--text-main);
 }
 
 .market-status-badge {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 800;
   color: var(--success);
-  background: var(--bg-color);
-  padding: 4px 12px;
-  border-radius: 20px;
-  border: 1px solid var(--border-color);
-}
-
-.pulse-dot {
-  width: 8px;
-  height: 8px;
-  background: var(--success);
-  border-radius: 50%;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+  background: rgba(34, 197, 94, 0.05);
+  padding: 6px 14px;
+  border-radius: 50px;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  letter-spacing: 0.5px;
 }
 
 .no-data-msg {
-  color: var(--text-slate);
-  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
   font-weight: 500;
+  text-align: center;
+  letter-spacing: -0.2px;
 }

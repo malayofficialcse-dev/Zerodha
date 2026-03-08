@@ -10,6 +10,8 @@ const GeneralContext = React.createContext({
   closeSellWindow: () => {},
   selectedSymbol: "",
   setSelectedSymbol: (symbol) => {},
+  isSidebarOpen: true,
+  toggleSidebar: () => {},
 });
 
 export const GeneralContextProvider = (props) => {
@@ -17,6 +19,9 @@ export const GeneralContextProvider = (props) => {
   const [isSellWindowOpen, setIsSellWindowOpen] = useState(false);
   const [selectedStockUID, setSelectedStockUID] = useState("");
   const [selectedSymbol, setSelectedSymbol] = useState("RELIANCE"); // Default
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
 
   const handleOpenBuyWindow = (uid) => {
     setIsBuyWindowOpen(true);
@@ -47,6 +52,8 @@ export const GeneralContextProvider = (props) => {
         closeSellWindow: handleCloseSellWindow,
         selectedSymbol,
         setSelectedSymbol,
+        isSidebarOpen,
+        toggleSidebar,
       }}
     >
       {props.children}
