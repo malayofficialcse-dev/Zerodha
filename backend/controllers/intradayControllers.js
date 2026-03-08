@@ -1,5 +1,6 @@
 import IntradayTrade from "../models/intradayTradeModel.js";
 import StockModel from "../models/stockModel.js";
+import HoldingModel from "../models/holdingsModel.js";
 
 // Buy
 export const buyIntraday = async (req, res) => {
@@ -18,6 +19,29 @@ export const buyIntraday = async (req, res) => {
     limitType,
     limitValue,
   });
+
+  // --- Synchronize with user Holdings ---
+  let holding = await HoldingModel.findOne({ user: userId, name: symbol });
+  if (holding) {
+    const totalCostBefore = holding.qty * holding.avg;
+    const newCost = Number(qty) * Number(buyPrice);
+    const totalQty = holding.qty + Number(qty);
+    holding.avg = (totalCostBefore + newCost) / totalQty;
+    holding.qty = totalQty;
+    await holding.save();
+  } else {
+    await HoldingModel.create({
+      user: userId,
+      name: symbol,
+      qty: Number(qty),
+      avg: Number(buyPrice),
+      price: Number(buyPrice),
+      net: "0.00%",
+      day: "0.00%",
+      isLoss: false,
+    });
+  }
+
   res.json(trade);
 };
 
@@ -33,6 +57,18 @@ export const sellIntraday = async (req, res) => {
   trade.status = "CLOSED";
   trade.profitOrLoss = (sellPrice - trade.buyPrice) * trade.qty;
   await trade.save();
+
+  // --- Synchronize with user Holdings ---
+  let holding = await HoldingModel.findOne({ user: trade.user, name: trade.symbol });
+  if (holding) {
+    holding.qty -= trade.qty;
+    if (holding.qty <= 0) {
+      await HoldingModel.deleteOne({ _id: holding._id });
+    } else {
+      await holding.save();
+    }
+  }
+
   res.json(trade);
 };
 
@@ -61,6 +97,18 @@ export const autoSellIntraday = async (req, res) => {
       trade.status = "AUTO";
       trade.profitOrLoss = (currentPrice - trade.buyPrice) * trade.qty;
       await trade.save();
+      
+      // --- Synchronize with user Holdings ---
+      let holding = await HoldingModel.findOne({ user: trade.user, name: trade.symbol });
+      if (holding) {
+        holding.qty -= trade.qty;
+        if (holding.qty <= 0) {
+          await HoldingModel.deleteOne({ _id: holding._id });
+        } else {
+          await holding.save();
+        }
+      }
+      
       // TODO: send notification to user (email/push)
     }
   }

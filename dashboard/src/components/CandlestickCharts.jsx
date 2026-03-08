@@ -144,7 +144,7 @@ const CandlestickCharts = () => {
       if (prev.length === 0) return prev;
       const lastIdx = prev.length - 1;
       const lastCandle = prev[lastIdx];
-      
+
       const updatedCandle = {
         ...lastCandle,
         close: selectedTick.price,

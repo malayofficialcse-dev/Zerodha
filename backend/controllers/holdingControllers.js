@@ -3,7 +3,9 @@ import mongoose from "mongoose";
 
 const getAllHoldings = async (req, res) => {
   try {
-    const allData = await HoldingModel.find({});
+    const userId = req.user.userId;
+    // Only return holdings belonging to the logged-in user
+    const allData = await HoldingModel.find({ user: userId });
     res.json(allData);
   } catch (err) {
     res.status(500).json({ error: err.message });
