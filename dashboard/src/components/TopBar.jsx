@@ -16,8 +16,11 @@ const INDEX_SYMBOLS = ["NIFTY", "SENSEX", "NIFTY_BANK"];
 const INDEX_LABELS  = { NIFTY: "NIFTY 50", SENSEX: "SENSEX", NIFTY_BANK: "NIFTY BANK" };
 
 // ─── TopBar ───────────────────────────────────────────────────
+import GeneralContext from "./GeneralContext";
+
 const TopBar = () => {
   const { theme, toggleTheme } = useTheme();
+  const { isSidebarOpen } = React.useContext(GeneralContext);
   const [seedPrices, setSeedPrices] = useState({});
   const [marketOpen, setMarketOpen] = useState(true);
 
