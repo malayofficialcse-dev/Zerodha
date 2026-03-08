@@ -138,10 +138,16 @@ const CandleChartIntraday = () => {
   };
 
   const chartData = useMemo(() => {
-    if (chartType === "candlestick" || chartType === "bar") {
+    if (chartType === "candlestick") {
       return sortedOhlc.map((d) => ({
         x: new Date(d.date).getTime(),
         y: [d.open, d.high, d.low, d.close],
+      }));
+    } else if (chartType === "bar") {
+      return sortedOhlc.map((d) => ({
+        x: new Date(d.date).getTime(),
+        y: d.close,
+        fillColor: d.close >= d.open ? "#22c55e" : "#ef4444"
       }));
     } else {
       return sortedOhlc.map((d) => ({
@@ -185,12 +191,13 @@ const CandleChartIntraday = () => {
     },
     plotOptions: {
       candlestick: {
+        columnWidth: "80%",
         colors: { upward: "#22c55e", downward: "#ef4444" },
         wick: { useFillColor: true },
       },
       bar: {
-        columnWidth: "80%",
-        colors: { ranges: [{ from: 0, to: 100000000, color: '#22c55e' }] }
+        columnWidth: "50%",
+        distributed: false,
       }
     },
     stroke: {
@@ -199,6 +206,7 @@ const CandleChartIntraday = () => {
     },
     xaxis: {
       type: "datetime",
+      range: chartType === "candlestick" ? 3 * 60 * 1000 : undefined,
       labels: {
         datetimeFormatter: { day: "dd MMM", hour: "HH:mm", minute: "HH:mm" },
       },
