@@ -1,0 +1,50 @@
+.extra-features-panel {
+  background: var(--surface-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  height: 100%;
+  box-shadow: var(--shadow-sm);
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.feature-card h6 {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.sentiment-bar {
+  height: 8px;
+  background: var(--border-color);
+  border-radius: 4px;
+  display: flex;
+  overflow: hidden;
+}
+
+.sentiment-bar .bullish { background: var(--success); }
+.sentiment-bar .bearish { background: var(--danger); }
+
+.depth-table {
+  font-size: 0.75rem;
+}
+
+.depth-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(var(--border-color), 0.3);
+}
+
+.depth-row.header {
+  font-weight: 700;
+  color: var(--text-muted);
+}

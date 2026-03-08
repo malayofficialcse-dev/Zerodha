@@ -57,7 +57,7 @@ export function useRealTimeTicks(symbols, initialPrices = {}) {
       let changed = false;
       const next = { ...prev };
       Object.entries(initialPrices).forEach(([sym, data]) => {
-        if (!next[sym]) {
+        if (!next[sym] || (data && next[sym].price !== data.price)) {
           next[sym] = data;
           changed = true;
         }

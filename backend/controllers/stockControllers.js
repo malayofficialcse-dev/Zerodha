@@ -18,7 +18,7 @@ export const getStockOHLC = async (req, res) => {
 
   // Merge indicators into the OHLC array for easy frontend consumption
   const enrichedData = stock.ohlc.map((d, i) => ({
-    ...d._doc, // spread the mongoose document
+    ...d.toObject(), // Convert mongoose subdocument to plain object safely
     rsi: rsi[i],
     macd: macdData.macd[i],
     signal: macdData.signal[i],

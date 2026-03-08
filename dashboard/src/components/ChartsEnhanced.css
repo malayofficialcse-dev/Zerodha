@@ -271,6 +271,99 @@
   to { transform: rotate(360deg); }
 }
 
+/* ── Stock selector (Intraday Terminal Style) ──────────────── */
+.stock-selection-bar {
+  display: flex;
+  align-items: center;
+  background: var(--surface-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  max-width: 100%;
+  overflow: hidden;
+  height: 48px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  background: rgba(0,0,0,0.1); /* Subtle contrast */
+  border-right: 1px solid var(--border-color);
+  height: 100%;
+  min-width: 220px;
+}
+
+.search-icon-mui {
+  color: var(--text-muted);
+  font-size: 1.1rem !important;
+  margin-right: 8px;
+}
+
+.search-box input {
+  background: transparent;
+  border: none;
+  font-size: 0.82rem;
+  color: var(--text-color);
+  outline: none;
+  width: 100%;
+  font-weight: 500;
+}
+
+.search-box input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.ticker-items {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  flex: 1;
+}
+
+.ticker-items::-webkit-scrollbar {
+  display: none;
+}
+
+.ticker-btn {
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 0.72rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.ticker-btn:hover {
+  background: var(--item-hover);
+  color: var(--brand-primary);
+}
+
+.ticker-btn.active {
+  background: var(--brand-primary);
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(56, 126, 209, 0.25);
+}
+
+.no-results {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 10px;
+  white-space: nowrap;
+}
+
 /* ── Market heatmap ───────────────────────────────────────── */
 .market-heatmap {
   margin-top: 8px;

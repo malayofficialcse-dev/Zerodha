@@ -6,9 +6,10 @@ import CandleChartIntraday from "./CandleChartIntraday";
 import CompanyInsights from "./CompanyInsights";
 import GeneralContext from "./GeneralContext";
 import "bootstrap/dist/css/bootstrap.min.css";
+import "./IntradayExtraStyles.css";
 
 const Intraday = () => {
-  const { selectedSymbol } = useContext(GeneralContext);
+  const { selectedSymbol, isSidebarOpen } = useContext(GeneralContext);
   const [trades, setTrades] = useState([]);
   const [stockInfo, setStockInfo] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
@@ -57,10 +58,42 @@ const Intraday = () => {
       </div>
 
       <div className="row g-4">
-        <div className={`col-lg-${showInsights ? '8' : '12'}`}>
+        <div className={`col-lg-${!isSidebarOpen ? '9' : (showInsights ? '8' : '12')}`}>
           <CandleChartIntraday symbol={selectedSymbol || "RELIANCE"} />
         </div>
-        {showInsights && (
+        
+        {/* Extra Features when Sidebar is closed */}
+        {!isSidebarOpen && (
+          <div className="col-lg-3">
+            <div className="extra-features-panel">
+               <div className="feature-card mb-3">
+                  <h6>Market Sentiment</h6>
+                  <div className="sentiment-bar">
+                    <div className="bullish" style={{ width: '65%' }}></div>
+                    <div className="bearish" style={{ width: '35%' }}></div>
+                  </div>
+                  <div className="d-flex justify-content-between mt-1" style={{ fontSize: '0.7rem' }}>
+                    <span>BULLISH 65%</span>
+                    <span>BEARISH 35%</span>
+                  </div>
+               </div>
+
+               <div className="feature-card mb-3">
+                  <h6>Market Depth</h6>
+                  <div className="depth-table">
+                    <div className="depth-row header"><span>Bid</span><span>Ask</span></div>
+                    <div className="depth-row"><span>1034.50 (200)</span><span className="text-danger">1034.55 (150)</span></div>
+                    <div className="depth-row"><span>1034.45 (450)</span><span className="text-danger">1034.60 (300)</span></div>
+                    <div className="depth-row"><span>1034.40 (120)</span><span className="text-danger">1034.65 (80)</span></div>
+                  </div>
+               </div>
+
+               <CompanyInsights stock={stockInfo} onClose={() => {}} compact={true} />
+            </div>
+          </div>
+        )}
+
+        {isSidebarOpen && showInsights && (
           <div className="col-lg-4">
             <CompanyInsights stock={stockInfo} onClose={() => setShowInsights(false)} />
           </div>
