@@ -3,13 +3,17 @@ import Dashboard from "./Dashboard";
 import TopBar from "./TopBar";
 import Menu from "./Menu";
 
+import { GeneralContextProvider } from "./GeneralContext";
+
 const Home = () => {
   return (
-    <div className="app-container">
-      <Menu />
-      <TopBar />
-      <Dashboard />
-    </div>
+    <GeneralContextProvider>
+      <div className="app-container">
+        <Menu />
+        <TopBar />
+        <Dashboard />
+      </div>
+    </GeneralContextProvider>
   );
 };
 

@@ -56,30 +56,26 @@ const Dashboard = () => {
 
   return (
     <div className={`dashboard-container ${isSidebarOpen ? "sidebar-open" : "sidebar-closed"}`}>
-      <GeneralContextProvider>
-        <SidebarToggle isOpen={isSidebarOpen} toggle={toggleSidebar} />
-        <Menu />
-        <TopBar />
-        <WatchList />
-        <div className="content">
-          <Routes>
-            <Route index element={<Summary />} />
-            <Route path="/orders" element={<Orders />} />
-            <Route path="/holdings" element={<Holdings />} />
-            <Route path="/positions" element={<Positions />} />
-            <Route path="/intraday" element={<Intraday />} />
-            <Route path="/charts" element={<Charts />} />
-            <Route path="/correlation" element={<CorrelationMatrix />} />
-            <Route path="/alerts" element={<Alerts />} />
-            <Route path="/profile" element={<UserProfile />} />
-            <Route path="/dashboard" element={<DashboardChart />} />
-            <Route path="/heatmap" element={<MarketHeatmap />} />
-            <Route path="/analytics" element={<RiskAnalytics />} />
-            <Route path="/rebalance" element={<Rebalancing />} />
-          </Routes>
-        </div>
-        <QuickTradeOverlay />
-      </GeneralContextProvider>
+      <SidebarToggle isOpen={isSidebarOpen} toggle={toggleSidebar} />
+      <WatchList />
+      <div className="content">
+        <Routes>
+          <Route index element={<Summary />} />
+          <Route path="/orders" element={<Orders />} />
+          <Route path="/holdings" element={<Holdings />} />
+          <Route path="/positions" element={<Positions />} />
+          <Route path="/intraday" element={<Intraday />} />
+          <Route path="/charts" element={<Charts />} />
+          <Route path="/correlation" element={<CorrelationMatrix />} />
+          <Route path="/alerts" element={<Alerts />} />
+          <Route path="/profile" element={<UserProfile />} />
+          <Route path="/dashboard" element={<DashboardChart />} />
+          <Route path="/heatmap" element={<MarketHeatmap />} />
+          <Route path="/analytics" element={<RiskAnalytics />} />
+          <Route path="/rebalance" element={<Rebalancing />} />
+        </Routes>
+      </div>
+      <QuickTradeOverlay />
       <ToastContainer />
     </div>
   );
