@@ -5,6 +5,7 @@ import { io } from "socket.io-client";
 import { API_BASE_URL } from "../config/config.js";
 import { useTheme } from "../ThemeContext.jsx";
 import { useRealTimeTicks } from "../hooks/useRealTimeTicks.js";
+import { Search } from "@mui/icons-material";
 import "./CandleChartIntraday.css";
 import "./ChartsEnhanced.css";
 
@@ -105,9 +106,18 @@ const CandlestickCharts = () => {
   const [showVolume, setShowVolume]     = useState(true);
   const [showRSI, setShowRSI]           = useState(false);
   const [showMACD, setShowMACD]         = useState(false);
+  const [searchTerm, setSearchTerm]     = useState("");
 
   const allSymbols = useMemo(() => companies.map(c => c.symbol), [companies]);
   const liveTick = useRealTimeTicks(allSymbols);
+
+  const filteredCompanies = useMemo(() => {
+    if (!searchTerm) return companies;
+    return companies.filter(c => 
+      c.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [companies, searchTerm]);
 
   // ── Fetch companies on mount ──
   useEffect(() => {
@@ -284,17 +294,31 @@ const CandlestickCharts = () => {
         )}
       </div>
 
-      {/* ── Stock selector ── */}
-      <div className="stock-selector mb-4">
-        {companies.map((c) => (
-          <button
-            key={c.symbol}
-            onClick={() => setSelected(c.symbol)}
-            className={`stock-btn ${selected === c.symbol ? "active" : ""}`}
-          >
-            {c.name}
-          </button>
-        ))}
+      {/* ── Stock selection bar (Search + Ticker) ── */}
+      <div className="stock-selection-bar mb-4">
+        <div className="search-box">
+          <Search className="search-icon-mui" />
+          <input 
+            type="text" 
+            placeholder="Search stocks (eg: infy, bse...)" 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="ticker-items">
+          {filteredCompanies.map((c) => (
+            <button
+              key={c.symbol}
+              onClick={() => setSelected(c.symbol)}
+              className={`ticker-btn ${selected === c.symbol ? "active" : ""}`}
+            >
+              <span className="ticker-sym">{c.symbol}</span>
+            </button>
+          ))}
+          {filteredCompanies.length === 0 && (
+            <div className="no-results">No stocks found</div>
+          )}
+        </div>
       </div>
 
       {/* ── Chart controls toolbar ── */}
