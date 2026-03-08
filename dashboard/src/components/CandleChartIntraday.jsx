@@ -14,6 +14,7 @@ import {
   BarChart as BarChartIcon,
   Timeline,
   Functions,
+  Search,
   Visibility,
   VisibilityOff
 } from "@mui/icons-material";
@@ -33,6 +34,7 @@ const CandleChartIntraday = () => {
   const [showMA50, setShowMA50] = useState(false);
   const [showVolume, setShowVolume] = useState(true);
   const [showRSI, setShowRSI] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch all companies on mount
   useEffect(() => {
@@ -95,6 +97,14 @@ const CandleChartIntraday = () => {
     [...ohlc].sort((a, b) => new Date(a.date) - new Date(b.date)),
     [ohlc]
   );
+
+  const filteredCompanies = useMemo(() => {
+    if (!searchTerm) return companies;
+    return companies.filter(c => 
+      c.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [companies, searchTerm]);
 
   // Helper for MA calculation
   const calcMA = (data, period) => {
@@ -289,10 +299,18 @@ const CandleChartIntraday = () => {
 
   return (
     <div className="intraday-container">
-      <div className="symbol-ticker mb-3">
-        <div className="ticker-label">STOCKS:</div>
+      <div className="stock-selection-bar mb-3">
+        <div className="search-box">
+          <Search className="search-icon" />
+          <input 
+            type="text" 
+            placeholder="Search stocks..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.value || e.target.value)}
+          />
+        </div>
         <div className="ticker-items">
-          {companies.map((c) => (
+          {filteredCompanies.map((c) => (
             <button
               key={c.symbol}
               onClick={() => setSelectedSymbol(c.symbol)}
@@ -301,6 +319,9 @@ const CandleChartIntraday = () => {
               <span className="ticker-sym">{c.symbol}</span>
             </button>
           ))}
+          {filteredCompanies.length === 0 && (
+            <div className="no-results">No stocks found</div>
+          )}
         </div>
       </div>
 
