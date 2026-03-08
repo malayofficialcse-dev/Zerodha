@@ -178,24 +178,19 @@ const CandlestickCharts = () => {
 
     const sliced = ohlc.slice(-TIMEFRAMES[tfIndex].candles);
 
-    const categories = sliced.map(d => new Date(d.date).toLocaleString("en-IN", {
-      month: "short", day: "2-digit",
-      hour: "2-digit", minute: "2-digit",
-    }));
-
-    const cd = sliced.map((d, i) => ({ x: categories[i], y: [d.open, d.high, d.low, d.close] }));
-    const vd = sliced.map((d, i) => ({
-      x: categories[i],
+    const cd = sliced.map((d) => ({ x: new Date(d.date).getTime(), y: [d.open, d.high, d.low, d.close] }));
+    const vd = sliced.map((d) => ({
+      x: new Date(d.date).getTime(),
       y: d.volume || 0,
       fillColor: d.close >= d.open ? "#26a69a55" : "#ef535055",
     }));
 
-    const rd = sliced.map((d, i) => ({ x: categories[i], y: d.rsi || null }));
+    const rd = sliced.map((d) => ({ x: new Date(d.date).getTime(), y: d.rsi || null }));
     const md = {
-      macd: sliced.map((d, i) => ({ x: categories[i], y: d.macd || null })),
-      signal: sliced.map((d, i) => ({ x: categories[i], y: d.signal || null })),
-      histogram: sliced.map((d, i) => ({
-        x: categories[i],
+      macd: sliced.map((d) => ({ x: new Date(d.date).getTime(), y: d.macd || null })),
+      signal: sliced.map((d) => ({ x: new Date(d.date).getTime(), y: d.signal || null })),
+      histogram: sliced.map((d) => ({
+        x: new Date(d.date).getTime(),
         y: d.histogram || 0,
         color: (d.histogram || 0) >= 0 ? "#26a69a" : "#ef5350"
       }))
@@ -219,7 +214,7 @@ const CandlestickCharts = () => {
       sync: { enabled: true, group: "equity-charts" }
     },
     xaxis: {
-      type: "category",
+      type: "datetime",
       labels: { show: false },
       axisBorder: { show: false },
       axisTicks: { show: false },
@@ -236,7 +231,21 @@ const CandlestickCharts = () => {
   const candleOptions = {
     ...commonOptions,
     chart: { ...commonOptions.chart, type: "candlestick", id: "candle-main" },
-    xaxis: { ...commonOptions.xaxis, labels: { show: true, rotate: -45, style: { colors: labelColors, fontSize: "0.7rem" } }, tickAmount: 8 },
+    xaxis: { 
+      ...commonOptions.xaxis, 
+      labels: { 
+        show: true, 
+        formatter: function(val) {
+          if (!val) return "";
+          return new Date(val).toLocaleString("en-IN", {
+            month: "short", day: "2-digit",
+            hour: "2-digit", minute: "2-digit"
+          });
+        },
+        style: { colors: labelColors, fontSize: "0.7rem" } 
+      }, 
+      tickAmount: 6 
+    },
     yaxis: { 
       ...commonOptions.yaxis, 
       labels: { ...commonOptions.yaxis.labels, formatter: (v) => `₹${Number(v).toLocaleString("en-IN")}` } 
