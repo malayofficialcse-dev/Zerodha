@@ -4,12 +4,18 @@
   border-radius: 8px;
   padding: 24px;
   color: var(--text-color);
-  height: 100%;
+  /* Cap the panel to the viewport so it scrolls on its own */
+  height: calc(100vh - 180px);
+  max-height: calc(100vh - 180px);
   display: flex;
   flex-direction: column;
   gap: 24px;
   box-shadow: var(--shadow-sm);
   overflow-y: auto;
+  /* Ensure the column doesn't try to push the panel taller */
+  align-self: flex-start;
+  position: sticky;
+  top: 16px;
 }
 
 /* Custom extra-thin scrollbar for this panel only */

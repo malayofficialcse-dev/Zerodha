@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext, useMemo } from "react";
+import React, { useEffect, useState, useContext, useMemo, useRef } from "react";
 import Chart from "react-apexcharts";
 import axios from "axios";
 import { io } from "socket.io-client";
@@ -35,6 +35,15 @@ const CandleChartIntraday = () => {
   const [showVolume, setShowVolume] = useState(true);
   const [showRSI, setShowRSI] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Refs to freeze the time offset to exactly when the symbol data was first loaded
+  const timeOffsetRef = useRef(0);
+  const prevSymbolRef = useRef(selectedSymbol);
+
+  if (prevSymbolRef.current !== selectedSymbol) {
+    timeOffsetRef.current = 0;
+    prevSymbolRef.current = selectedSymbol;
+  }
 
   // Fetch all companies on mount
   useEffect(() => {
@@ -148,20 +157,27 @@ const CandleChartIntraday = () => {
   };
 
   const chartData = useMemo(() => {
+    // Calculate an offset exactly once per symbol load so it doesn't shift on every tick
+    if (timeOffsetRef.current === 0 && sortedOhlc.length > 0) {
+      const latestTimestamp = new Date(sortedOhlc[sortedOhlc.length - 1].date).getTime();
+      timeOffsetRef.current = Date.now() - latestTimestamp;
+    }
+    const timeOffset = timeOffsetRef.current;
+
     if (chartType === "candlestick") {
       return sortedOhlc.map((d) => ({
-        x: new Date(d.date).getTime(),
+        x: new Date(d.date).getTime() + timeOffset,
         y: [d.open, d.high, d.low, d.close],
       }));
     } else if (chartType === "bar") {
       return sortedOhlc.map((d) => ({
-        x: new Date(d.date).getTime(),
+        x: new Date(d.date).getTime() + timeOffset,
         y: d.close,
         fillColor: d.close >= d.open ? "#22c55e" : "#ef4444"
       }));
     } else {
       return sortedOhlc.map((d) => ({
-        x: new Date(d.date).getTime(),
+        x: new Date(d.date).getTime() + timeOffset,
         y: d.close,
       }));
     }
@@ -181,13 +197,13 @@ const CandleChartIntraday = () => {
     [chartData, showRSI]
   );
 
-  const volumeData = useMemo(() => 
-    sortedOhlc.map((d) => ({
-      x: new Date(d.date).getTime(),
+  const volumeData = useMemo(() => {
+    const timeOffset = timeOffsetRef.current;
+    return sortedOhlc.map((d) => ({
+      x: new Date(d.date).getTime() + timeOffset,
       y: d.volume || Math.floor(Math.random() * 1000 + 1000),
-    })),
-    [sortedOhlc]
-  );
+    }));
+  }, [sortedOhlc]);
 
   const mainOptions = {
     chart: {
@@ -218,7 +234,13 @@ const CandleChartIntraday = () => {
       type: "datetime",
       range: chartType === "candlestick" ? 3 * 60 * 1000 : undefined,
       labels: {
-        datetimeFormatter: { day: "dd MMM", hour: "HH:mm", minute: "HH:mm" },
+        formatter: function(val) {
+          if (!val) return "";
+          return new Date(val).toLocaleString("en-IN", {
+            month: "short", day: "2-digit",
+            hour: "2-digit", minute: "2-digit"
+          });
+        },
       },
     },
     yaxis: {
@@ -412,6 +434,7 @@ const CandleChartIntraday = () => {
         {chartData.length > 0 ? (
           <>
             <Chart
+              key={`main-${selectedSymbol}-${chartType}`}
               options={mainOptions}
               series={series}
               type={chartType}
@@ -421,6 +444,7 @@ const CandleChartIntraday = () => {
               <div className="rsi-container mt-2">
                 <div className="small fw-bold mb-1" style={{ color: '#8b5cf6' }}>RSI (14)</div>
                 <Chart
+                  key={`rsi-${selectedSymbol}`}
                   options={rsiOptions}
                   series={[{ name: "RSI", data: rsiData }]}
                   type="line"
@@ -432,6 +456,7 @@ const CandleChartIntraday = () => {
               <div className="volume-container mt-2">
                 <div className="small fw-bold mb-1" style={{ color: '#94a3b8' }}>Volume</div>
                 <Chart
+                  key={`vol-${selectedSymbol}`}
                   options={brushOptions}
                   series={[{ name: "Volume", data: volumeData }]}
                   type="bar"
