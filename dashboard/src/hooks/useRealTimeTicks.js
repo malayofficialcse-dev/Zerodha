@@ -27,34 +27,44 @@ function getSocket() {
  * Ticks are received every 1 second but React state is updated every 5 seconds
  * (batched flush) so the UI refreshes in sync with the backend aggregation cycle.
  *
- * @param {string[]} symbols       - e.g. ["RELIANCE", "NIFTY"]
- * @param {Object}   initialPrices - seed values shown before the first flush
- */
-export function useRealTimeTicks(symbols, initialPrices = {}) {
-  const [prices, setPrices] = useState(initialPrices);
-  const symbolsRef = useRef(new Set(symbols));
-
-  // Buffer: stores the *latest* tick for each symbol without triggering re-render
-  const bufferRef = useRef({});
-
-  // Keep symbolsRef in sync when the caller changes the symbols array
-  useEffect(() => {
-    symbolsRef.current = new Set(symbols);
-  }, [symbols]);
-
-  // Sync state with initialPrices when they change (e.g. after DB fetch)
-  useEffect(() => {
-    setPrices((prev) => {
-      const next = { ...prev };
-      Object.entries(initialPrices).forEach(([sym, data]) => {
-        // Only seed if we don't already have live data for this symbol
-        if (!next[sym]) {
-          next[sym] = data;
-        }
+   * @param {string[]} symbols       - e.g. ["RELIANCE", "NIFTY"]
+   * @param {Object}   initialPrices - seed values shown before the first flush
+   */
+  export function useRealTimeTicks(symbols, initialPrices = {}) {
+    const [prices, setPrices] = useState(initialPrices);
+    const symbolsRef = useRef(new Set(symbols));
+  
+    // Buffer: stores the *latest* tick for each symbol without triggering re-render
+    const bufferRef = useRef({});
+  
+    // Keep symbolsRef in sync when the caller changes the symbols array
+    useEffect(() => {
+      symbolsRef.current = new Set(symbols);
+    }, [symbols]);
+  
+    // Keep track of the last processed initialPrices to avoid unnecessary updates
+    const lastInitialPricesRef = useRef(null);
+  
+    // Sync state with initialPrices when they change (e.g. after DB fetch)
+    useEffect(() => {
+      // Basic structural equality check to prevent infinite loops if initialPrices 
+      // is a new object/array but has the same contents.
+      const currentStr = JSON.stringify(initialPrices);
+      if (lastInitialPricesRef.current === currentStr) return;
+      lastInitialPricesRef.current = currentStr;
+  
+      setPrices((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        Object.entries(initialPrices).forEach(([sym, data]) => {
+          if (!next[sym] || (data && next[sym].price !== data.price)) {
+            next[sym] = data;
+            changed = true;
+          }
+        });
+        return changed ? next : prev;
       });
-      return next;
-    });
-  }, [initialPrices]);
+    }, [initialPrices]);
 
   useEffect(() => {
     getSocket(); // ensure socket is open
