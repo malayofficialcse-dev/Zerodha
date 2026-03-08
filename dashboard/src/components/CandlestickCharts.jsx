@@ -178,19 +178,23 @@ const CandlestickCharts = () => {
 
     const sliced = ohlc.slice(-TIMEFRAMES[tfIndex].candles);
 
-    const cd = sliced.map((d) => ({ x: new Date(d.date).getTime(), y: [d.open, d.high, d.low, d.close] }));
+    // Calculate a static time shift to make the last data point always end at the current moment
+    const latestTimestamp = sliced.length > 0 ? new Date(sliced[sliced.length - 1].date).getTime() : 0;
+    const timeOffset = latestTimestamp > 0 ? Date.now() - latestTimestamp : 0;
+
+    const cd = sliced.map((d) => ({ x: new Date(d.date).getTime() + timeOffset, y: [d.open, d.high, d.low, d.close] }));
     const vd = sliced.map((d) => ({
-      x: new Date(d.date).getTime(),
+      x: new Date(d.date).getTime() + timeOffset,
       y: d.volume || 0,
       fillColor: d.close >= d.open ? "#26a69a55" : "#ef535055",
     }));
 
-    const rd = sliced.map((d) => ({ x: new Date(d.date).getTime(), y: d.rsi || null }));
+    const rd = sliced.map((d) => ({ x: new Date(d.date).getTime() + timeOffset, y: d.rsi || null }));
     const md = {
-      macd: sliced.map((d) => ({ x: new Date(d.date).getTime(), y: d.macd || null })),
-      signal: sliced.map((d) => ({ x: new Date(d.date).getTime(), y: d.signal || null })),
+      macd: sliced.map((d) => ({ x: new Date(d.date).getTime() + timeOffset, y: d.macd || null })),
+      signal: sliced.map((d) => ({ x: new Date(d.date).getTime() + timeOffset, y: d.signal || null })),
       histogram: sliced.map((d) => ({
-        x: new Date(d.date).getTime(),
+        x: new Date(d.date).getTime() + timeOffset,
         y: d.histogram || 0,
         color: (d.histogram || 0) >= 0 ? "#26a69a" : "#ef5350"
       }))
