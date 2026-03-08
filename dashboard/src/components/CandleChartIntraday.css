@@ -3,35 +3,65 @@
   background: transparent;
 }
 
-.stock-selector {
+.symbol-ticker {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 24px;
-}
-
-.stock-btn {
-  padding: 6px 14px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
+  align-items: center;
   background: var(--surface-bg);
-  color: var(--text-muted);
-  font-weight: 500;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.2s;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 4px;
+  gap: 12px;
+  overflow: hidden;
 }
 
-.stock-btn:hover {
+.ticker-label {
+  font-size: 0.65rem;
+  font-weight: 900;
+  color: var(--text-muted);
+  padding: 0 8px;
+  border-right: 1px solid var(--border-color);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.ticker-items {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+
+.ticker-items::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+.ticker-btn {
+  padding: 6px 16px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ticker-btn:hover {
   background: var(--item-hover);
   color: var(--brand-primary);
-  border-color: var(--brand-primary);
 }
 
-.stock-btn.active {
+.ticker-btn.active {
   background: var(--brand-primary);
   color: #ffffff;
-  border-color: var(--brand-primary);
+  box-shadow: 0 4px 12px rgba(56, 126, 209, 0.25);
+}
+
+.ticker-sym {
+  letter-spacing: 0.2px;
 }
 
 .chart-wrapper {

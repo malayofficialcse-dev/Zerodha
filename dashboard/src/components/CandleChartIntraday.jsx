@@ -289,16 +289,19 @@ const CandleChartIntraday = () => {
 
   return (
     <div className="intraday-container">
-      <div className="stock-selector mb-4">
-        {companies.map((c) => (
-          <button
-            key={c.symbol}
-            onClick={() => setSelectedSymbol(c.symbol)}
-            className={`stock-btn ${selectedSymbol === c.symbol ? "active" : ""}`}
-          >
-            {c.name}
-          </button>
-        ))}
+      <div className="symbol-ticker mb-3">
+        <div className="ticker-label">STOCKS:</div>
+        <div className="ticker-items">
+          {companies.map((c) => (
+            <button
+              key={c.symbol}
+              onClick={() => setSelectedSymbol(c.symbol)}
+              className={`ticker-btn ${selectedSymbol === c.symbol ? "active" : ""}`}
+            >
+              <span className="ticker-sym">{c.symbol}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="intraday-header">
