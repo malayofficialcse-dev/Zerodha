@@ -26,13 +26,44 @@ const UserProfile = () => {
         const token = localStorage.getItem("token");
         const headers = { Authorization: `Bearer ${token}` };
         
-        const [userRes, tradesRes] = await Promise.all([
+        const [userRes, tradesRes, ordersRes] = await Promise.all([
           axios.get(`${API_BASE_URL}/user/profile`, { headers }),
-          axios.get(`${API_BASE_URL}/intraday/my`, { headers })
+          axios.get(`${API_BASE_URL}/intraday/my`, { headers }),
+          axios.get(`${API_BASE_URL}/order/myOrders`, { headers })
         ]);
         
+        // Map Intraday Trades
+        const intradayTrades = tradesRes.data.map(t => ({
+          _id: t._id,
+          symbol: t.symbol,
+          qty: t.qty,
+          buyPrice: t.buyPrice,
+          sellPrice: t.sellPrice,
+          profitOrLoss: t.profitOrLoss || 0,
+          status: t.status,
+          type: "INTRADAY",
+          date: t.createdAt
+        }));
+
+        // Map Orders
+        const orderTrades = ordersRes.data.map(o => ({
+          _id: o._id,
+          symbol: o.name,
+          qty: o.qty,
+          buyPrice: o.mode === "BUY" ? o.price : null,
+          sellPrice: o.mode === "SELL" ? o.price : null,
+          profitOrLoss: 0, 
+          status: o.mode === "BUY" ? "BOUGHT" : "SOLD",
+          type: "ORDER",
+          date: o.createdAt || new Date()
+        }));
+
+        const mergedTrades = [...intradayTrades, ...orderTrades].sort(
+          (a, b) => new Date(b.date) - new Date(a.date)
+        );
+
         setUser(userRes.data);
-        setTrades(tradesRes.data);
+        setTrades(mergedTrades);
       } catch (err) {
         console.error("Fetch error:", err);
       } finally {
@@ -58,16 +89,21 @@ const UserProfile = () => {
     let maxProfitSymbol = "-";
 
     closedTrades.forEach(t => {
-      const pnl = t.profitOrLoss || 0;
-      totalPnL += pnl;
-      if (pnl > 0) winningTrades++;
-      if (pnl > maxProfit) {
-        maxProfit = pnl;
-        maxProfitSymbol = t.symbol;
+      if (t.type === "ORDER") {
+        totalPnL += 0; // Standard orders might not have immediate PnL
+      } else {
+        const pnl = t.profitOrLoss || 0;
+        totalPnL += pnl;
+        if (pnl > 0) winningTrades++;
+        if (pnl > maxProfit) {
+          maxProfit = pnl;
+          maxProfitSymbol = t.symbol;
+        }
       }
     });
 
-    const winRate = ((winningTrades / closedTrades.length) * 100).toFixed(1);
+    const activeTrades = closedTrades.filter(t => t.type === "INTRADAY").length;
+    const winRate = activeTrades > 0 ? ((winningTrades / activeTrades) * 100).toFixed(1) : 0;
 
     return {
       totalPnL,
@@ -183,6 +219,7 @@ const UserProfile = () => {
                   <th>Buy</th>
                   <th>Sell</th>
                   <th>P/L</th>
+                  <th>Type</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -195,10 +232,13 @@ const UserProfile = () => {
                       <td>₹{t.buyPrice}</td>
                       <td>{t.sellPrice ? `₹${t.sellPrice}` : "-"}</td>
                       <td className={t.profitOrLoss > 0 ? "text-success-alt fw-bold" : t.profitOrLoss < 0 ? "text-danger-alt fw-bold" : "text-muted"}>
-                        {t.profitOrLoss > 0 ? `+₹${t.profitOrLoss.toLocaleString()}` : t.profitOrLoss < 0 ? `-₹${Math.abs(t.profitOrLoss).toLocaleString()}` : "₹0"}
+                        {t.type === "INTRADAY" ? (t.profitOrLoss > 0 ? `+₹${t.profitOrLoss.toLocaleString()}` : t.profitOrLoss < 0 ? `-₹${Math.abs(t.profitOrLoss).toLocaleString()}` : "₹0") : "-"}
                       </td>
                       <td>
-                        <span className={`status-badge ${t.status === "OPEN" ? "status-open" : "status-closed"}`}>
+                        <span className="badge bg-secondary opacity-75">{t.type}</span>
+                      </td>
+                      <td>
+                        <span className={`status-badge ${["OPEN", "BOUGHT"].includes(t.status) ? "status-open" : "status-closed"}`}>
                           {t.status}
                         </span>
                       </td>
