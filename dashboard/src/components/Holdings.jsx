@@ -9,9 +9,19 @@ const Holdings = () => {
   const [allHoldings, setAllHoldings] = useState([]);
 
   useEffect(() => {
-    axios.get(`${API_BASE_URL}/holding/allHoldings`).then((res) => {
-      setAllHoldings(res.data);
-    });
+    const fetchHoldings = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/holding/allHoldings`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        setAllHoldings(res.data);
+      } catch (err) {
+        console.error("Failed to fetch personal holdings:", err);
+      }
+    };
+    fetchHoldings();
   }, []);
 
   // ── Real-Time P&L Integration ────────────────────────────────

@@ -134,6 +134,7 @@
 // };
 
 import OrdersModel from "../models/ordersModel.js";
+import HoldingModel from "../models/holdingsModel.js";
 import mongoose from "mongoose";
 
 // Get all orders for the logged-in user
@@ -208,7 +209,45 @@ export const createNewOrder = async (req, res) => {
       user: userId,
     });
     await newOrder.save();
-    res.send("Order saved");
+
+    // --- Synchronize with user Holdings ---
+    let holding = await HoldingModel.findOne({ user: userId, name });
+
+    if (mode === "BUY") {
+      if (holding) {
+        // Recalculate average cost based on previously owned qty + new qty
+        const totalCostBefore = holding.qty * holding.avg;
+        const newCost = qty * price;
+        const totalQty = holding.qty + qty;
+        holding.avg = (totalCostBefore + newCost) / totalQty;
+        holding.qty = totalQty;
+        await holding.save();
+      } else {
+        // Create new holding
+        await HoldingModel.create({
+          user: userId,
+          name,
+          qty,
+          avg: price,
+          price, // LTP fallback
+          net: "0.00%",
+          day: "0.00%",
+          isLoss: false,
+        });
+      }
+    } else if (mode === "SELL") {
+      if (holding) {
+        holding.qty -= qty;
+        if (holding.qty <= 0) {
+          // If all shares sold, remove holding entirely
+          await HoldingModel.deleteOne({ _id: holding._id });
+        } else {
+          await holding.save();
+        }
+      }
+    }
+
+    res.send("Order saved and holdings updated");
   } catch (err) {
     console.error("Order error:", err);
     res.status(500).json({ error: err.message });
