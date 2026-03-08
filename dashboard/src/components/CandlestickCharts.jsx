@@ -109,7 +109,45 @@ const CandlestickCharts = () => {
   const allSymbols = companies.map(c => c.symbol);
   const liveTick = useRealTimeTicks(allSymbols);
 
-  // ... (fetch companies and OHLC effects remain same until useMemo)
+  // ── Fetch companies on mount ──
+  useEffect(() => {
+    axios.get(`${API_BASE_URL}/stocks/all`).then((res) => {
+      setCompanies(res.data);
+      if (res.data.length > 0) setSelected(res.data[0].symbol);
+    });
+  }, []);
+
+  // ── Fetch OHLC data for selected stock ──
+  useEffect(() => {
+    if (!selected) return;
+    axios.get(`${API_BASE_URL}/stocks/${selected}/ohlc`).then((res) => {
+      setOhlc(res.data);
+    });
+  }, [selected]);
+
+  // ── Sync chart with live ticks ──
+  const selectedTick = liveTick[selected];
+  useEffect(() => {
+    if (!selectedTick || ohlc.length === 0) return;
+
+    setOhlc((prev) => {
+      const lastIdx = prev.length - 1;
+      const lastCandle = prev[lastIdx];
+      
+      // Update the current (last) candle's values with the latest tick
+      const updatedCandle = {
+        ...lastCandle,
+        close: selectedTick.price,
+        high: Math.max(lastCandle.high, selectedTick.price),
+        low: Math.min(lastCandle.low, selectedTick.price),
+        volume: selectedTick.volume,
+      };
+
+      const next = [...prev];
+      next[lastIdx] = updatedCandle;
+      return next;
+    });
+  }, [selectedTick, selected]);
 
   // ── Build chart data scoped to selected timeframe ──
   const { chartData, volumeData, rsiData, macdData } = useMemo(() => {

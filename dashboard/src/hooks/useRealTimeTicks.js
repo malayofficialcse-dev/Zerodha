@@ -11,7 +11,7 @@ const listeners = new Set();
 // Single shared socket connection for the entire app
 function getSocket() {
   if (!sharedSocket) {
-    sharedSocket = io(socketURL, { transports: ["websocket"] });
+    sharedSocket = io(socketURL);
     sharedSocket.on("connect", () => {
       console.log(`[Socket] Connected to ${socketURL}`);
     });
@@ -42,17 +42,27 @@ export function useRealTimeTicks(symbols, initialPrices = {}) {
     symbolsRef.current = new Set(symbols);
   }, [symbols]);
 
+  // Keep track of the last processed initialPrices to avoid unnecessary updates
+  const lastInitialPricesRef = useRef(null);
+
   // Sync state with initialPrices when they change (e.g. after DB fetch)
   useEffect(() => {
+    // Basic structural equality check to prevent infinite loops if initialPrices 
+    // is a new object/array but has the same contents.
+    const currentStr = JSON.stringify(initialPrices);
+    if (lastInitialPricesRef.current === currentStr) return;
+    lastInitialPricesRef.current = currentStr;
+
     setPrices((prev) => {
+      let changed = false;
       const next = { ...prev };
       Object.entries(initialPrices).forEach(([sym, data]) => {
-        // Only seed if we don't already have live data for this symbol
         if (!next[sym]) {
           next[sym] = data;
+          changed = true;
         }
       });
-      return next;
+      return changed ? next : prev;
     });
   }, [initialPrices]);
 
