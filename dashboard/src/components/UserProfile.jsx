@@ -1,63 +1,182 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
-import "bootstrap/dist/css/bootstrap.min.css";
-import { API_BASE_URL } from "../config/config.js"; // adjust path as needed
+import Chart from "react-apexcharts";
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  AccountCircle, 
+  Email, 
+  Timeline, 
+  ReceiptLong,
+  Logout
+} from "@mui/icons-material";
+import { API_BASE_URL } from "../config/config.js";
+import { useTheme } from "../ThemeContext.jsx";
+import "./UserProfile.css";
 
 const UserProfile = () => {
+  const { theme } = useTheme();
   const [user, setUser] = useState({ username: "", email: "" });
   const [trades, setTrades] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchData = async () => {
       try {
-        const res = await axios.get(`${API_BASE_URL}/user/profile`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-        setUser(res.data);
+        const token = localStorage.getItem("token");
+        const headers = { Authorization: `Bearer ${token}` };
+        
+        const [userRes, tradesRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/user/profile`, { headers }),
+          axios.get(`${API_BASE_URL}/intraday/my`, { headers })
+        ]);
+        
+        setUser(userRes.data);
+        setTrades(tradesRes.data);
       } catch (err) {
-        console.error("User fetch error:", err);
+        console.error("Fetch error:", err);
+      } finally {
+        setLoading(false);
       }
     };
-
-    const fetchTrades = async () => {
-      try {
-        const res = await axios.get(`${API_BASE_URL}/intraday/my`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-        setTrades(res.data);
-      } catch (err) {
-        console.error("Trade fetch error:", err);
-      }
-    };
-
-    fetchUser();
-    fetchTrades();
+    fetchData();
   }, []);
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    window.location.href = "/login";
+  };
+
+  // ─── Analytics Calculations ──────────────────────────────
+  const stats = useMemo(() => {
+    const closedTrades = trades; // Or filter by status if needed
+    if (closedTrades.length === 0) return null;
+
+    let totalPnL = 0;
+    let winningTrades = 0;
+    let maxProfit = 0;
+    let maxProfitSymbol = "-";
+
+    closedTrades.forEach(t => {
+      const pnl = t.profitOrLoss || 0;
+      totalPnL += pnl;
+      if (pnl > 0) winningTrades++;
+      if (pnl > maxProfit) {
+        maxProfit = pnl;
+        maxProfitSymbol = t.symbol;
+      }
+    });
+
+    const winRate = ((winningTrades / closedTrades.length) * 100).toFixed(1);
+
+    return {
+      totalPnL,
+      totalTrades: closedTrades.length,
+      winRate,
+      winningTrades,
+      losingTrades: closedTrades.length - winningTrades,
+      bestTrade: { symbol: maxProfitSymbol, pnl: maxProfit }
+    };
+  }, [trades]);
+
+  // ─── Chart Data ──────────────────────────────────────────
+  const doughnutOptions = {
+    chart: { type: 'donut', background: 'transparent' },
+    labels: ['Winning Trades', 'Losing Trades'],
+    colors: ['#22c55e', '#ef4444'],
+    stroke: { show: false },
+    dataLabels: { enabled: false },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '75%',
+          labels: {
+            show: true,
+            name: { show: true, color: theme === 'light' ? '#64748b' : '#94a3b8' },
+            value: { show: true, fontSize: '24px', fontWeight: 700, color: theme === 'light' ? '#1e293b' : '#f8fafc' },
+            total: {
+              show: true,
+              label: 'Win Rate',
+              formatter: () => stats ? `${stats.winRate}%` : '0%'
+            }
+          }
+        }
+      }
+    },
+    legend: { show: false },
+    tooltip: { theme: theme }
+  };
+
+  const doughnutSeries = stats ? [stats.winningTrades, stats.losingTrades] : [0, 0];
+
+  if (loading) {
+    return (
+      <div className="profile-container d-flex justify-content-center align-items-center">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="container col-8">
-      <div className="card mb-4 shadow-sm">
-        <div className="card-body">
-          <h3 className="card-title">User Profile</h3>
-          <p className="card-text">
-            <strong>Name:</strong> {user.username}
-          </p>
-          <p className="card-text">
-            <strong>Email:</strong> {user.email}
-          </p>
+    <div className="profile-container">
+      <div className="profile-header">
+        <div>
+          <h2 className="profile-title">Profile & Analytics</h2>
+          <p className="text-muted m-0">Manage your account and view trading performance</p>
+        </div>
+        <button className="btn btn-logout d-flex align-items-center gap-2" onClick={handleLogout}>
+          <Logout fontSize="small" /> Logout
+        </button>
+      </div>
+
+      {/* ── Top Analytics Grid ── */}
+      <div className="analytics-grid">
+        <div className="stat-card">
+          <div className="stat-title d-flex align-items-center justify-content-between">
+            Net P&L {stats?.totalPnL >= 0 ? <TrendingUp className="text-success-alt" /> : <TrendingDown className="text-danger-alt" />}
+          </div>
+          <div className={`stat-value ${stats?.totalPnL >= 0 ? 'text-success-alt' : 'text-danger-alt'}`}>
+            {stats?.totalPnL >= 0 ? '+' : '-'}₹{Math.abs(stats?.totalPnL || 0).toLocaleString('en-IN')}
+          </div>
+          <div className="stat-sub">Lifetime realized returns</div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-title d-flex align-items-center justify-content-between">
+            Total Trades <ReceiptLong fontSize="small" />
+          </div>
+          <div className="stat-value">{stats?.totalTrades || 0}</div>
+          <div className="stat-sub">Executed orders</div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-title d-flex align-items-center justify-content-between">
+            Win Rate <Timeline fontSize="small" />
+          </div>
+          <div className="stat-value">{stats?.winRate || 0}%</div>
+          <div className="stat-sub">Profitable trades ratio</div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-title d-flex align-items-center justify-content-between">
+            Best Trade <span style={{fontSize:'1.2rem'}}>🏆</span>
+          </div>
+          <div className="stat-value text-success-alt">+₹{stats?.bestTrade.pnl.toLocaleString('en-IN') || 0}</div>
+          <div className="stat-sub">Symbol: {stats?.bestTrade.symbol || '-'}</div>
         </div>
       </div>
 
-      <div className="card shadow-sm">
-        <div className="card-body">
-          <h4 className="card-title">Trade History</h4>
+      <div className="profile-content-grid">
+        {/* ── Left: Trade History ── */}
+        <div className="content-card" style={{ padding: 0, overflow: 'hidden' }}>
+          <h4 style={{ padding: '20px', margin: 0, borderBottom: '1px solid var(--border-color)' }}>
+            Trade History
+          </h4>
           <div className="table-responsive">
-            <table className="table table-striped">
-              <thead className="table-dark">
+            <table className="table custom-table m-0">
+              <thead>
                 <tr>
                   <th>Stock</th>
                   <th>Qty</th>
@@ -68,55 +187,57 @@ const UserProfile = () => {
                 </tr>
               </thead>
               <tbody>
-                {trades.map((t) => (
-                  <tr key={t._id}>
-                    <td>{t.symbol}</td>
-                    <td>{t.qty}</td>
-                    <td>₹{t.buyPrice}</td>
-                    <td>{t.sellPrice ? `₹${t.sellPrice}` : "-"}</td>
-                    <td
-                      className={
-                        t.profitOrLoss > 0
-                          ? "text-success fw-bold"
-                          : t.profitOrLoss < 0
-                          ? "text-danger fw-bold"
-                          : "text-muted"
-                      }
-                    >
-                      {t.profitOrLoss > 0
-                        ? `+₹${t.profitOrLoss}`
-                        : t.profitOrLoss < 0
-                        ? `-₹${Math.abs(t.profitOrLoss)}`
-                        : "₹0"}
-                    </td>
-                    <td
-                      className={
-                        t.status === "OPEN"
-                          ? "text-success fw-semibold"
-                          : "text-danger fw-semibold"
-                      }
-                    >
-                      {t.status}
+                {trades.length > 0 ? (
+                  trades.map((t) => (
+                    <tr key={t._id}>
+                      <td className="fw-bold">{t.symbol}</td>
+                      <td>{t.qty}</td>
+                      <td>₹{t.buyPrice}</td>
+                      <td>{t.sellPrice ? `₹${t.sellPrice}` : "-"}</td>
+                      <td className={t.profitOrLoss > 0 ? "text-success-alt fw-bold" : t.profitOrLoss < 0 ? "text-danger-alt fw-bold" : "text-muted"}>
+                        {t.profitOrLoss > 0 ? `+₹${t.profitOrLoss.toLocaleString()}` : t.profitOrLoss < 0 ? `-₹${Math.abs(t.profitOrLoss).toLocaleString()}` : "₹0"}
+                      </td>
+                      <td>
+                        <span className={`status-badge ${t.status === "OPEN" ? "status-open" : "status-closed"}`}>
+                          {t.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="6" className="empty-state">
+                      <ReceiptLong className="empty-state-icon" />
+                      <div>No trades recorded yet. Start trading to see your history.</div>
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
         </div>
-      </div>
 
-      {/* Add this logout button */}
-      <div className="text-center mt-4">
-        <button
-          className="btn btn-danger"
-          onClick={() => {
-            localStorage.removeItem("token");
-            window.location.href = "/login";
-          }}
-        >
-          Logout
-        </button>
+        {/* ── Right: User Info & Charts ── */}
+        <div className="d-flex flex-column gap-4">
+          <div className="user-info-card m-0">
+            <div className="user-avatar">{user.username.charAt(0)}</div>
+            <div className="user-details">
+              <h4>{user.username || "Trader"}</h4>
+              <p><Email fontSize="small" style={{verticalAlign: 'middle', marginRight: '4px'}}/> {user.email || "No email"}</p>
+            </div>
+          </div>
+
+          <div className="content-card">
+            <h4>Trade Distribution</h4>
+            <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '250px' }}>
+              {trades.length > 0 ? (
+                <Chart options={doughnutOptions} series={doughnutSeries} type="donut" width="100%" height={260} />
+              ) : (
+                <div className="text-muted small">Insufficient data for chart</div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
