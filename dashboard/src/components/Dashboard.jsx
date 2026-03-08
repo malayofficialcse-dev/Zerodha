@@ -18,14 +18,12 @@ import UserProfile from "./UserProfile";
 import RiskAnalytics from "./RiskAnalytics";
 import Rebalancing from "./Rebalancing";
 
-import { GeneralContextProvider } from "./GeneralContext";
 import DashboardChart from "./DashboardChart";
 import MarketHeatmap from "./MarketHeatmap";
 import QuickTradeOverlay from "./QuickTradeOverlay";
 import GeneralContext from "./GeneralContext";
 import { ChevronLeft, ChevronRight } from "@mui/icons-material";
-import TopBar from "./TopBar";
-import Menu from "./Menu";
+
 
 
 const Dashboard = () => {
@@ -55,7 +53,7 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <div className={`dashboard-container ${isSidebarOpen ? "sidebar-open" : "sidebar-closed"}`}>
+    <div className="dashboard-container">
       <SidebarToggle isOpen={isSidebarOpen} toggle={toggleSidebar} />
       <WatchList />
       <div className="content">
