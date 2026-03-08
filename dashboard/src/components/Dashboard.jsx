@@ -22,9 +22,15 @@ import { GeneralContextProvider } from "./GeneralContext";
 import DashboardChart from "./DashboardChart";
 import MarketHeatmap from "./MarketHeatmap";
 import QuickTradeOverlay from "./QuickTradeOverlay";
+import GeneralContext from "./GeneralContext";
+import { ChevronLeft, ChevronRight } from "@mui/icons-material";
+import TopBar from "./TopBar";
+import Menu from "./Menu";
 
 
 const Dashboard = () => {
+  const { isSidebarOpen, toggleSidebar } = React.useContext(GeneralContext);
+
   useEffect(() => {
     // Listen for global price alerts
     const socketURL = API_BASE_URL.replace("/api", "");
@@ -49,11 +55,13 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <div className="dashboard-container">
+    <div className={`dashboard-container ${isSidebarOpen ? "sidebar-open" : "sidebar-closed"}`}>
       <GeneralContextProvider>
+        <SidebarToggle isOpen={isSidebarOpen} toggle={toggleSidebar} />
+        <Menu />
+        <TopBar />
         <WatchList />
-        <div className="content" style={{ marginLeft: "380px" }}>
-
+        <div className="content">
           <Routes>
             <Route index element={<Summary />} />
             <Route path="/orders" element={<Orders />} />
@@ -76,5 +84,15 @@ const Dashboard = () => {
     </div>
   );
 };
+
+const SidebarToggle = ({ isOpen, toggle }) => (
+  <button 
+    className="sidebar-toggle-btn" 
+    onClick={toggle}
+    title={isOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+  >
+    {isOpen ? <ChevronLeft /> : <ChevronRight />}
+  </button>
+);
 
 export default Dashboard;

@@ -81,6 +81,15 @@ h1, h2, h3, h4, h5, h6, p, table, th, td, span, a, label, li {
   padding: 24px;
   background-color: var(--bg-color);
   margin-top: 128px; /* Space for Menu (64) + TopBar (64) */
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dashboard-container.sidebar-open .content {
+  margin-left: 380px;
+}
+
+.dashboard-container.sidebar-closed .content {
+  margin-left: 0;
 }
 
 /* TopBar Styling */
@@ -94,10 +103,18 @@ h1, h2, h3, h4, h5, h6, p, table, th, td, span, a, label, li {
   padding: 0 24px;
   position: fixed;
   top: 64px; /* Below Menu */
-  left: 380px; /* Offset for sidebar */
   right: 0;
   z-index: 10;
   box-shadow: var(--shadow-sm);
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dashboard-container.sidebar-open .topbar-container {
+  left: 380px;
+}
+
+.dashboard-container.sidebar-closed .topbar-container {
+  left: 0;
 }
 
 .topbar-left {
@@ -162,6 +179,11 @@ h1, h2, h3, h4, h5, h6, p, table, th, td, span, a, label, li {
   top: 64px;
   left: 0;
   z-index: 5;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dashboard-container.sidebar-closed .watchlist-container {
+  transform: translateX(-380px);
 }
 
 .search-container {
@@ -575,12 +597,20 @@ h1, h2, h3, h4, h5, h6, p, table, th, td, span, a, label, li {
   border-bottom: 1px solid var(--border-color);
   position: fixed;
   top: 128px; /* below menu(64) + topbar(64) */
-  left: 380px; /* Offset to start after sidebar */
   right: 0;
   z-index: 9;
   overflow: hidden;
   display: flex;
   align-items: center;
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dashboard-container.sidebar-open .ticker-tape-wrapper {
+  left: 380px;
+}
+
+.dashboard-container.sidebar-closed .ticker-tape-wrapper {
+  left: 0;
 }
 
 .ticker-tape-track {
