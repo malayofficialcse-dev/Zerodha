@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Python Essentials – Front Cover</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Fira+Code:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --navy: #0b0e1f;
+        --purple: #1a0a3e;
+        --accent-blue: #00d4ff;
+        --accent-green: #39ff14;
+        --accent-gold: #ffd700;
+        --accent-pink: #ff6ec7;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Outfit", sans-serif;
+        background: #05080f;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        overflow: hidden;
+      }
+
+      /* ─── Book Shell ─── */
+      .book-cover {
+        width: 520px;
+        min-height: 740px;
+        background: linear-gradient(
+          145deg,
+          #0d0f2b 0%,
+          #1a0a3e 45%,
+          #0b1a2f 100%
+        );
+        border-radius: 4px 18px 18px 4px;
+        position: relative;
+        overflow: hidden;
+        box-shadow:
+          -8px 0 0 #111 inset,
+          4px 8px 60px rgba(0, 212, 255, 0.35),
+          0 0 120px rgba(57, 255, 20, 0.12);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 48px 40px 36px;
+      }
+
+      /* ─── Animated grid background ─── */
+      .grid-bg {
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(0, 212, 255, 0.07) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 212, 255, 0.07) 1px, transparent 1px);
+        background-size: 40px 40px;
+        animation: grid-drift 18s linear infinite;
+      }
+      @keyframes grid-drift {
+        from {
+          transform: translateY(0);
+        }
+        to {
+          transform: translateY(40px);
+        }
+      }
+
+      /* ─── Floating particles ─── */
+      .particle {
+        position: absolute;
+        border-radius: 50%;
+        animation: float-up linear infinite;
+        opacity: 0;
+      }
+      @keyframes float-up {
+        0% {
+          opacity: 0;
+          transform: translateY(0) scale(1);
+        }
+        15% {
+          opacity: 0.9;
+        }
+        85% {
+          opacity: 0.9;
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(-700px) scale(0.3);
+        }
+      }
+
+      /* ─── Top badge ─── */
+      .badge {
+        z-index: 2;
+        background: linear-gradient(
+          90deg,
+          var(--accent-blue),
+          var(--accent-green)
+        );
+        color: #000;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 2.5px;
+        padding: 5px 18px;
+        border-radius: 20px;
+        text-transform: uppercase;
+        margin-bottom: 22px;
+      }
+
+      /* ─── Logo row ─── */
+      .logos {
+        z-index: 2;
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        margin-bottom: 28px;
+      }
+      .logo-chip {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+      }
+      .logo-chip .icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        box-shadow: 0 0 18px rgba(255, 255, 255, 0.15);
+      }
+      .logo-chip .label {
+        font-size: 9px;
+        letter-spacing: 1.5px;
+        color: rgba(255, 255, 255, 0.55);
+        text-transform: uppercase;
+      }
+      .py-logo {
+        background: linear-gradient(135deg, #3776ab, #ffd242);
+      }
+      .pd-logo {
+        background: linear-gradient(135deg, #130754, #e70488);
+      }
+      .np-logo {
+        background: linear-gradient(135deg, #013243, #4dabcf);
+      }
+
+      /* ─── Main title ─── */
+      .title-block {
+        z-index: 2;
+        text-align: center;
+        margin-bottom: 6px;
+      }
+      .eyebrow {
+        font-size: 11px;
+        letter-spacing: 4px;
+        color: var(--accent-blue);
+        text-transform: uppercase;
+        margin-bottom: 10px;
+      }
+      h1 {
+        font-size: 54px;
+        font-weight: 900;
+        line-height: 1.05;
+        background: linear-gradient(
+          135deg,
+          #fff 0%,
+          var(--accent-blue) 50%,
+          var(--accent-green) 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 4px;
+      }
+      .subtitle {
+        font-size: 16px;
+        font-weight: 300;
+        color: rgba(255, 255, 255, 0.6);
+        letter-spacing: 0.5px;
+      }
+
+      /* ─── Divider ─── */
+      .divider {
+        z-index: 2;
+        width: 80%;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--accent-blue),
+          var(--accent-green),
+          transparent
+        );
+        margin: 22px 0;
+      }
+
+      /* ─── Cover image ─── */
+      .cover-art {
+        z-index: 2;
+        width: 88%;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1.5px solid rgba(0, 212, 255, 0.3);
+        box-shadow: 0 12px 60px rgba(0, 212, 255, 0.25);
+        margin-bottom: 24px;
+      }
+      .cover-art img {
+        width: 100%;
+        display: block;
+      }
+
+      /* ─── Feature pills ─── */
+      .features {
+        z-index: 2;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+        margin-bottom: 26px;
+      }
+      .pill {
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(0, 212, 255, 0.25);
+        border-radius: 20px;
+        padding: 5px 14px;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.75);
+        backdrop-filter: blur(6px);
+      }
+      .pill span {
+        color: var(--accent-green);
+        margin-right: 5px;
+      }
+
+      /* ─── Author strip ─── */
+      .author-strip {
+        z-index: 2;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.05);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 14px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-radius: 0 0 14px 14px;
+        margin-top: auto;
+      }
+      .author-info .name {
+        font-size: 14px;
+        font-weight: 600;
+        color: #fff;
+      }
+      .author-info .role {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.4);
+        letter-spacing: 1px;
+      }
+      .edition-badge {
+        background: linear-gradient(135deg, var(--accent-gold), #ff8c00);
+        color: #000;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 5px 12px;
+        border-radius: 8px;
+        letter-spacing: 0.5px;
+      }
+
+      /* ─── Spine shadow ─── */
+      .book-cover::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 24px;
+        background: linear-gradient(90deg, rgba(0, 0, 0, 0.6), transparent);
+        z-index: 3;
+        border-radius: 4px 0 0 4px;
+      }
+
+      /* ─── Glow orbs ─── */
+      .orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(60px);
+        opacity: 0.18;
+      }
+      .orb1 {
+        width: 300px;
+        height: 300px;
+        background: var(--accent-blue);
+        top: -80px;
+        right: -80px;
+      }
+      .orb2 {
+        width: 250px;
+        height: 250px;
+        background: var(--accent-green);
+        bottom: 80px;
+        left: -100px;
+      }
+      .orb3 {
+        width: 200px;
+        height: 200px;
+        background: var(--accent-pink);
+        bottom: -60px;
+        right: 40px;
+      }
+
+      /* Print */
+      @media print {
+        body {
+          background: white;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="book-cover">
+      <!-- Background layers -->
+      <div class="grid-bg"></div>
+      <div class="orb orb1"></div>
+      <div class="orb orb2"></div>
+      <div class="orb orb3"></div>
+
+      <!-- Particles (injected by JS) -->
+
+      <!-- Top badge -->
+      <div class="badge">📘 Complete Beginner's Guide</div>
+
+      <!-- Logo row -->
+      <div class="logos">
+        <div class="logo-chip">
+          <div class="icon py-logo">🐍</div>
+          <div class="label">Python</div>
+        </div>
+        <div style="color: rgba(255, 255, 255, 0.2); font-size: 22px">·</div>
+        <div class="logo-chip">
+          <div class="icon pd-logo">🐼</div>
+          <div class="label">Pandas</div>
+        </div>
+        <div style="color: rgba(255, 255, 255, 0.2); font-size: 22px">·</div>
+        <div class="logo-chip">
+          <div class="icon np-logo">⚡</div>
+          <div class="label">NumPy</div>
+        </div>
+      </div>
+
+      <!-- Title -->
+      <div class="title-block">
+        <div class="eyebrow">Python Essentials</div>
+        <h1>Pandas<br />&amp; NumPy</h1>
+        <div class="subtitle">Data Analysis &amp; Scientific Computing</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Cover art -->
+      <div class="cover-art">
+        <img
+          src="../../../Users/maity/.gemini/antigravity/brain/27c430e7-4867-4123-96ce-79a4226586bc/python_book_front_cover_1772981491911.png"
+          alt="Book Cover Art"
+          onerror="
+            this.style.display = 'none';
+            this.parentElement.style.background =
+              'linear-gradient(135deg,#0d0f2b,#1a0a3e)';
+            this.parentElement.style.height = '160px';
+          "
+        />
+      </div>
+
+      <!-- Feature pills -->
+      <div class="features">
+        <div class="pill"><span>✓</span> DataFrames &amp; Series</div>
+        <div class="pill"><span>✓</span> Array Operations</div>
+        <div class="pill"><span>✓</span> Data Cleaning</div>
+        <div class="pill"><span>✓</span> Visualizations</div>
+        <div class="pill"><span>✓</span> Real-World Projects</div>
+        <div class="pill"><span>✓</span> 50+ Exercises</div>
+      </div>
+
+      <!-- Author strip -->
+      <div class="author-strip">
+        <div class="author-info">
+          <div class="name">Author Name</div>
+          <div class="role">Data Scientist &amp; Python Expert</div>
+        </div>
+        <div class="edition-badge">1st Edition</div>
+      </div>
+    </div>
+
+    <script>
+      // Spawn floating particles
+      const cover = document.querySelector(".book-cover");
+      const colors = ["#00d4ff", "#39ff14", "#ffd700", "#ff6ec7", "#ffffff"];
+      for (let i = 0; i < 30; i++) {
+        const p = document.createElement("div");
+        p.className = "particle";
+        const size = Math.random() * 5 + 2;
+        p.style.cssText = `
+      width:${size}px; height:${size}px;
+      background:${colors[Math.floor(Math.random() * colors.length)]};
+      left:${Math.random() * 100}%;
+      bottom:${Math.random() * 20}%;
+      animation-duration:${Math.random() * 8 + 6}s;
+      animation-delay:${Math.random() * 10}s;
+    `;
+        cover.appendChild(p);
+      }
+    </script>
+  </body>
+</html>

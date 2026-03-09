@@ -1,4 +1,5 @@
 import StockModel from "../models/stockModel.js";
+import redisClient from "../services/redisClient.js";
 
 /**
  * Computes the Pearson correlation coefficient between two arrays of numbers.
@@ -39,7 +40,18 @@ function pearsonCorrelation(x, y) {
  * }
  */
 export const getCorrelationMatrix = async (req, res) => {
+  const cacheKey = "analytics:correlation";
+
   try {
+    let cachedData = null;
+    if (redisClient.status === 'ready') {
+      cachedData = await redisClient.get(cacheKey);
+    }
+    
+    if (cachedData) {
+      return res.json(JSON.parse(cachedData));
+    }
+
     // Fetch only required fields — no need for the whole document
     const stocks = await StockModel.find({}, "symbol name sector ohlc");
 
@@ -85,12 +97,19 @@ export const getCorrelationMatrix = async (req, res) => {
       })
     );
 
-    return res.json({
+    const payload = {
       symbols,
       meta:   symbolMeta,   // { SYMBOL: { name, sector } }
       matrix,
       computedAt: new Date().toISOString(),
-    });
+    };
+
+    // Cache the heavy calculation result for 1 hour
+    if (redisClient.status === 'ready') {
+      await redisClient.setex(cacheKey, 3600, JSON.stringify(payload));
+    }
+
+    return res.json(payload);
   } catch (err) {
     console.error("Correlation matrix error:", err.message);
     return res.status(500).json({ error: "Failed to compute correlation matrix." });

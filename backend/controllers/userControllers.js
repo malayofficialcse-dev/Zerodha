@@ -60,9 +60,34 @@ export const loginUser = async (req, res) => {
 // GET /api/user/profile
 export const getUserProfile = async (req, res) => {
   try {
-    const user = await UserModel.findById(req.user.userId).select("-password");
+    const userId = req.user.userId;
+    const cacheKey = `user:${userId}:profile`;
+
+    // Try cache first
+    let cachedProfile = null;
+    if (redisClient.status === 'ready') {
+      cachedProfile = await redisClient.get(cacheKey);
+    }
+    
+    if (cachedProfile) {
+      return res.json(JSON.parse(cachedProfile));
+    }
+
+    const user = await UserModel.findById(userId).select("-password");
+    
+    // Cache for 1 hour
+    if (redisClient.status === 'ready') {
+      await redisClient.setex(cacheKey, 3600, JSON.stringify(user));
+    }
+
     res.json(user);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error("Redis Cache Error in getUserProfile:", err);
+    try {
+      const user = await UserModel.findById(req.user.userId).select("-password");
+      res.json(user);
+    } catch (dbErr) {
+      res.status(400).json({ error: dbErr.message });
+    }
   }
 };

@@ -136,15 +136,39 @@
 import OrdersModel from "../models/ordersModel.js";
 import HoldingModel from "../models/holdingsModel.js";
 import mongoose from "mongoose";
+import redisClient from "../services/redisClient.js";
 
 // Get all orders for the logged-in user
 export const getUserOrders = async (req, res) => {
   try {
     const userId = req.user.userId;
+    const cacheKey = `user:${userId}:orders`;
+
+    let cachedOrders = null;
+    if (redisClient.status === 'ready') {
+      cachedOrders = await redisClient.get(cacheKey);
+    }
+    
+    if (cachedOrders) {
+      return res.json(JSON.parse(cachedOrders));
+    }
+
     const orders = await OrdersModel.find({ user: userId });
+    
+    // Cache for 60 seconds (invalidated on new order)
+    if (redisClient.status === 'ready') {
+      await redisClient.setex(cacheKey, 60, JSON.stringify(orders));
+    }
+    
     res.json(orders);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Redis Cache Error in getUserOrders:", err);
+    try {
+      const orders = await OrdersModel.find({ user: req.user.userId });
+      res.json(orders);
+    } catch (dbErr) {
+      res.status(500).json({ error: dbErr.message });
+    }
   }
 };
 
@@ -244,6 +268,16 @@ export const createNewOrder = async (req, res) => {
         } else {
           await holding.save();
         }
+      }
+    }
+    
+    // -> INVALIDATE CACHES <-
+    if (redisClient.status === "ready") {
+      try {
+        await redisClient.del(`user:${userId}:orders`);
+        await redisClient.del(`user:${userId}:holdings`);
+      } catch (cacheErr) {
+        console.error("Failed to invalidate cache after order:", cacheErr);
       }
     }
 

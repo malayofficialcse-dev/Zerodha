@@ -1,35 +1,51 @@
 import HoldingsModel from "../models/holdingsModel.js";
 import StockModel from "../models/stockModel.js";
 import UserModel from "../models/usersModel.js";
+import redisClient from "../services/redisClient.js";
 import { 
   calculateSharpeRatio, 
   calculateMaxDrawdown, 
   calculateBeta, 
   getSectorExposure 
 } from "../services/riskService.js";
+import crypto from 'crypto';
 
 export const getRiskAnalytics = async (req, res) => {
+  const userId = req.user?.userId || "anonymous";
+  const cacheKey = `user:${userId}:analytics:risk`;
+
   try {
+    let cachedAnalytics = null;
+    if (redisClient.status === 'ready') {
+      cachedAnalytics = await redisClient.get(cacheKey);
+    }
+    
+    if (cachedAnalytics) {
+      return res.json(JSON.parse(cachedAnalytics));
+    }
+
     const holdings = await HoldingsModel.find({});
     const allStocks = await StockModel.find({});
 
+    const generateSampleData = () => ({
+      metrics: { sharpe: 1.85, beta: 0.92, maxDrawdown: 12.4 },
+      sectors: [
+        { name: "IT", value: 45000, percentage: 45 },
+        { name: "Banking", value: 30000, percentage: 30 },
+        { name: "Energy", value: 15000, percentage: 15 },
+        { name: "FMCG", value: 10000, percentage: 10 }
+      ],
+      drawdownSeries: Array.from({ length: 15 }).map((_, i) => ({
+        date: new Date(Date.now() - (15 - i) * 24 * 60 * 60 * 1000).toISOString(),
+        drawdown: Number((Math.random() * 5 + (i < 5 ? 5 : 0)).toFixed(2))
+      })),
+      portfolioValue: 100000,
+      isSampleData: true
+    });
+
     if (holdings.length === 0) {
       // Provide high-quality sample data if user has no holdings yet
-      return res.json({
-        metrics: { sharpe: 1.85, beta: 0.92, maxDrawdown: 12.4 },
-        sectors: [
-          { name: "IT", value: 45000, percentage: 45 },
-          { name: "Banking", value: 30000, percentage: 30 },
-          { name: "Energy", value: 15000, percentage: 15 },
-          { name: "FMCG", value: 10000, percentage: 10 }
-        ],
-        drawdownSeries: Array.from({ length: 15 }).map((_, i) => ({
-          date: new Date(Date.now() - (15 - i) * 24 * 60 * 60 * 1000).toISOString(),
-          drawdown: Number((Math.random() * 5 + (i < 5 ? 5 : 0)).toFixed(2))
-        })),
-        portfolioValue: 100000,
-        isSampleData: true
-      });
+      return res.json(generateSampleData());
     }
 
     // 1. Calculate Sector Exposure
@@ -57,23 +73,7 @@ export const getRiskAnalytics = async (req, res) => {
     const finalPortfolioValue = portfolioValues[portfolioValues.length - 1];
 
     if (finalPortfolioValue === 0) {
-      // Portfolio exists but calculation resulted in 0 (likely mismatch or no OHLC)
-      // Return sample data so UI is not empty
-      return res.json({
-        metrics: { sharpe: 1.85, beta: 0.92, maxDrawdown: 12.4 },
-        sectors: [
-          { name: "IT", value: 45000, percentage: 45 },
-          { name: "Banking", value: 30000, percentage: 30 },
-          { name: "Energy", value: 15000, percentage: 15 },
-          { name: "FMCG", value: 10000, percentage: 10 }
-        ],
-        drawdownSeries: Array.from({ length: 15 }).map((_, i) => ({
-          date: new Date(Date.now() - (15 - i) * 24 * 60 * 60 * 1000).toISOString(),
-          drawdown: Number((Math.random() * 5 + (i < 5 ? 5 : 0)).toFixed(2))
-        })),
-        portfolioValue: 100000,
-        isSampleData: true
-      });
+      return res.json(generateSampleData());
     }
 
     // 4. Calculate Risk Metrics
@@ -91,22 +91,44 @@ export const getRiskAnalytics = async (req, res) => {
       };
     });
 
-    res.json({
+    const payload = {
       metrics: { sharpe, beta, maxDrawdown },
       sectors,
       drawdownSeries,
       portfolioValue: portfolioValues[portfolioValues.length - 1]
-    });
+    };
+
+    // Cache the analytics data for 5 minutes
+    if (redisClient.status === 'ready') {
+      await redisClient.setex(cacheKey, 300, JSON.stringify(payload));
+    }
+
+    res.json(payload);
 
   } catch (error) {
+    console.error("Redis Cache Error in getRiskAnalytics:", error);
     res.status(500).json({ error: error.message });
   }
 };
 
 export const getRebalancePlan = async (req, res) => {
+  const userId = req.user?.userId || "anonymous";
+  const { targets } = req.body; // e.g. { Bluechip: 50, Midcap: 30, Smallcap: 10, Cash: 10 }
+  
+  // Hash targets so cache is specific to inputs
+  const targetHash = crypto.createHash('md5').update(JSON.stringify(targets)).digest('hex');
+  const cacheKey = `user:${userId}:analytics:rebalance:${targetHash}`;
+
   try {
-    const { targets } = req.body; // e.g. { Bluechip: 50, Midcap: 30, Smallcap: 10, Cash: 10 }
+    let cachedPlan = null;
+    if (redisClient.status === 'ready') {
+      cachedPlan = await redisClient.get(cacheKey);
+    }
     
+    if (cachedPlan) {
+      return res.json(JSON.parse(cachedPlan));
+    }
+
     const holdings = await HoldingsModel.find({});
     const allStocks = await StockModel.find({});
     // For demo, we'll fetch the first user or a dummy user
@@ -172,14 +194,21 @@ export const getRebalancePlan = async (req, res) => {
       };
     });
 
-    res.json({
+    const payload = {
       totalValue: totalPortfolioValue.toFixed(2),
       equityValue: totalEquityValue.toFixed(2),
       cashBalance: cashBalance.toFixed(2),
       plan: rebalancePlan
-    });
+    };
 
+    // Cache the rebalance plan for 5 minutes
+    if (redisClient.status === 'ready') {
+      await redisClient.setex(cacheKey, 300, JSON.stringify(payload));
+    }
+
+    res.json(payload);
   } catch (error) {
+    console.error("Redis Cache Error in getRebalancePlan:", error);
     res.status(500).json({ error: error.message });
   }
 };

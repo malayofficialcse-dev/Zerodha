@@ -1,31 +1,86 @@
 import StockModel from "../models/stockModel.js";
 import { calculateRSI, calculateMACD } from "../services/techIndicators.js";
+import redisClient from "../services/redisClient.js";
 
 // Get all stocks (list)
 export const getAllStocks = async (req, res) => {
-  const stocks = await StockModel.find({}, "symbol name sector currentPrice");
-  res.json(stocks);
+  const cacheKey = "stocks:all";
+  
+  try {
+    let cachedStocks = null;
+    if (redisClient.status === 'ready') {
+      cachedStocks = await redisClient.get(cacheKey);
+    }
+    
+    if (cachedStocks) {
+      return res.json(JSON.parse(cachedStocks));
+    }
+
+    const stocks = await StockModel.find({}, "symbol name sector currentPrice");
+    
+    // Cache for 5 seconds (matching the live tick update interval)
+    if (redisClient.status === 'ready') {
+      await redisClient.setex(cacheKey, 5, JSON.stringify(stocks));
+    }
+    
+    res.json(stocks);
+  } catch (err) {
+    console.error("Redis Cache Error in getAllStocks:", err);
+    const stocks = await StockModel.find({}, "symbol name sector currentPrice");
+    res.json(stocks);
+  }
 };
 
 // Get OHLC data for a stock + Technical Indicators
 export const getStockOHLC = async (req, res) => {
-  const stock = await StockModel.findOne({ symbol: req.params.symbol });
-  if (!stock) return res.status(404).json({ error: "Stock not found" });
+  const symbol = req.params.symbol;
+  const cacheKey = `stock:ohlc:${symbol}`;
 
-  const closes = stock.ohlc.map(d => d.close);
-  const rsi = calculateRSI(closes);
-  const macdData = calculateMACD(closes);
+  try {
+    let cachedData = null;
+    if (redisClient.status === 'ready') {
+      cachedData = await redisClient.get(cacheKey);
+    }
+    
+    if (cachedData) {
+      return res.json(JSON.parse(cachedData));
+    }
 
-  // Merge indicators into the OHLC array for easy frontend consumption
-  const enrichedData = stock.ohlc.map((d, i) => ({
-    ...d.toObject(), // Convert mongoose subdocument to plain object safely
-    rsi: rsi[i],
-    macd: macdData.macd[i],
-    signal: macdData.signal[i],
-    histogram: macdData.histogram[i]
-  }));
+    const stock = await StockModel.findOne({ symbol });
+    if (!stock) return res.status(404).json({ error: "Stock not found" });
 
-  res.json(enrichedData);
+    const closes = stock.ohlc.map(d => d.close);
+    const rsi = calculateRSI(closes);
+    const macdData = calculateMACD(closes);
+
+    // Merge indicators into the OHLC array for easy frontend consumption
+    const enrichedData = stock.ohlc.map((d, i) => ({
+      ...d.toObject(), // Convert mongoose subdocument to plain object safely
+      rsi: rsi[i],
+      macd: macdData.macd[i],
+      signal: macdData.signal[i],
+      histogram: macdData.histogram[i]
+    }));
+
+    // Cache OHLC data for 5 seconds
+    if (redisClient.status === 'ready') {
+      await redisClient.setex(cacheKey, 5, JSON.stringify(enrichedData));
+    }
+
+    res.json(enrichedData);
+  } catch (err) {
+    console.error(`Redis Cache Error in getStockOHLC for ${symbol}:`, err);
+    // Fallback if Redis fails
+    const stock = await StockModel.findOne({ symbol });
+    if (!stock) return res.status(404).json({ error: "Stock not found" });
+    const closes = stock.ohlc.map(d => d.close);
+    const rsi = calculateRSI(closes);
+    const macdData = calculateMACD(closes);
+    const enrichedData = stock.ohlc.map((d, i) => ({
+      ...d.toObject(), rsi: rsi[i], macd: macdData.macd[i], signal: macdData.signal[i], histogram: macdData.histogram[i]
+    }));
+    res.json(enrichedData);
+  }
 };
 
 

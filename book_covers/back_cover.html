@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Python Essentials – Back Cover</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --navy:  #0b0e1f;
+      --purple:#1a0a3e;
+      --blue:  #00d4ff;
+      --green: #39ff14;
+      --gold:  #ffd700;
+      --pink:  #ff6ec7;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      font-family:'Outfit',sans-serif;
+      background:#05080f;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .back-cover {
+      width:520px;
+      min-height:740px;
+      background:linear-gradient(155deg,#0a0d22 0%,#12062e 50%,#091526 100%);
+      border-radius:18px 4px 4px 18px;
+      position:relative;
+      overflow:hidden;
+      box-shadow:
+        8px 0 0 #111 inset,
+        -4px 8px 60px rgba(57,255,20,.2),
+        0 0 120px rgba(0,212,255,.1);
+      display:flex;
+      flex-direction:column;
+      padding:44px 38px 32px;
+    }
+
+    /* Grid bg */
+    .grid-bg {
+      position:absolute; inset:0;
+      background-image:
+        linear-gradient(rgba(0,212,255,.05) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(0,212,255,.05) 1px,transparent 1px);
+      background-size:36px 36px;
+      animation:grid-drift 22s linear infinite reverse;
+    }
+    @keyframes grid-drift{from{transform:translateY(0)}to{transform:translateY(36px)}}
+
+    /* Orbs */
+    .orb { position:absolute; border-radius:50%; filter:blur(70px); opacity:.15; }
+    .o1  { width:280px;height:280px;background:var(--blue); top:-60px;  left:-80px; }
+    .o2  { width:200px;height:200px;background:var(--green);bottom:60px;right:-70px; }
+
+    /* Spine shadow on right */
+    .back-cover::after {
+      content:'';
+      position:absolute;right:0;top:0;bottom:0;width:24px;
+      background:linear-gradient(270deg,rgba(0,0,0,.6),transparent);
+      z-index:5; border-radius:0 4px 4px 0;
+    }
+
+    /* ── Top logo row ── */
+    .top-logos {
+      z-index:2;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-bottom:20px;
+    }
+    .top-logos .tl-chip {
+      display:flex;align-items:center;gap:6px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:10px;
+      padding:5px 12px;
+    }
+    .tl-chip .icon { font-size:16px; }
+    .tl-chip .lbl  { font-size:10px;font-weight:600;color:rgba(255,255,255,.7);letter-spacing:1px; }
+
+    /* ── Back-cover art ── */
+    .back-art {
+      z-index:2;
+      width:100%; border-radius:12px; overflow:hidden;
+      border:1px solid rgba(0,212,255,.2);
+      box-shadow:0 8px 40px rgba(0,212,255,.15);
+      margin-bottom:22px;
+    }
+    .back-art img { width:100%;display:block; }
+
+    /* ── About section ── */
+    .section-label {
+      z-index:2;
+      font-size:9px;letter-spacing:3px;text-transform:uppercase;
+      color:var(--blue);margin-bottom:8px;
+    }
+    .about-text {
+      z-index:2;
+      font-size:12.5px;line-height:1.75;
+      color:rgba(255,255,255,.72);
+      margin-bottom:20px;
+    }
+
+    /* ── Chapter bullets ── */
+    .chapters {
+      z-index:2;
+      display:grid;grid-template-columns:1fr 1fr;
+      gap:8px;margin-bottom:22px;
+    }
+    .ch-item {
+      display:flex;align-items:flex-start;gap:8px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(0,212,255,.12);
+      border-radius:8px;padding:8px 10px;
+    }
+    .ch-icon { font-size:14px;flex-shrink:0;margin-top:1px; }
+    .ch-text  { font-size:11px;color:rgba(255,255,255,.68);line-height:1.4; }
+    .ch-text strong { display:block;color:rgba(255,255,255,.92);font-size:12px;margin-bottom:2px; }
+
+    /* ── Divider ── */
+    .divider {
+      z-index:2;height:1px;width:100%;
+      background:linear-gradient(90deg,transparent,var(--blue),var(--green),transparent);
+      margin:18px 0;
+    }
+
+    /* ── Author bio ── */
+    .author-bio {
+      z-index:2;display:flex;gap:14px;align-items:center;margin-bottom:20px;
+    }
+    .avatar {
+      width:54px;height:54px;border-radius:50%;flex-shrink:0;
+      background:linear-gradient(135deg,var(--blue),var(--pink));
+      display:flex;align-items:center;justify-content:center;
+      font-size:24px;
+      box-shadow:0 0 18px rgba(0,212,255,.4);
+    }
+    .bio-text .bio-name { font-size:14px;font-weight:700;color:#fff;margin-bottom:3px; }
+    .bio-text .bio-role { font-size:10px;color:var(--blue);letter-spacing:1px;margin-bottom:4px; }
+    .bio-text .bio-desc { font-size:11px;color:rgba(255,255,255,.55);line-height:1.5; }
+
+    /* ── Bottom bar ── */
+    .bottom-bar {
+      z-index:2;
+      margin-top:auto;
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .isbn-block .isbn-label { font-size:9px;letter-spacing:2px;color:rgba(255,255,255,.4); }
+    .isbn-block .isbn-num   { font-family:'Fira Code',monospace;font-size:12px;color:rgba(255,255,255,.7); }
+    .barcode {
+      width:120px;height:42px;
+      background:repeating-linear-gradient(
+        90deg, #fff 0, #fff 2px, transparent 2px, transparent 4px,
+               #fff 4px,#fff 5px,transparent 5px,transparent 9px,
+               #fff 9px,#fff 12px,transparent 12px,transparent 14px,
+               #fff 14px,#fff 15px,transparent 15px,transparent 18px
+      );
+      border-radius:3px;
+      opacity:.65;
+    }
+    .price-tag {
+      background:linear-gradient(135deg,var(--gold),#ff8c00);
+      color:#000;font-weight:700;font-size:16px;
+      padding:8px 16px;border-radius:10px;
+      letter-spacing:.5px;
+    }
+    .price-tag small { display:block;font-size:9px;font-weight:400;opacity:.7; }
+  </style>
+</head>
+<body>
+<div class="back-cover">
+
+  <div class="grid-bg"></div>
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+
+  <!-- Logo chips -->
+  <div class="top-logos">
+    <div class="tl-chip"><span class="icon">🐍</span><span class="lbl">Python</span></div>
+    <div class="tl-chip"><span class="icon">🐼</span><span class="lbl">Pandas</span></div>
+    <div class="tl-chip"><span class="icon">⚡</span><span class="lbl">NumPy</span></div>
+    <div style="flex:1"></div>
+    <span style="font-size:9px;color:rgba(255,255,255,.3);letter-spacing:2px;z-index:2">PYTHON ESSENTIALS</span>
+  </div>
+
+  <!-- Back cover art (uses generated image) -->
+  <div class="back-art">
+    <img src="../../../Users/maity/.gemini/antigravity/brain/27c430e7-4867-4123-96ce-79a4226586bc/python_book_back_cover_1772981542022.png"
+         alt="Back Cover Art"
+         onerror="this.style.display='none';this.parentElement.style.background='linear-gradient(135deg,#0d0f2b,#1a0a3e)';this.parentElement.style.height='120px'"/>
+  </div>
+
+  <!-- About -->
+  <div class="section-label z-2">About This Book</div>
+  <div class="about-text">
+    Unlock the power of data science with this hands-on guide to <strong style="color:#00d4ff">Python</strong>,
+    <strong style="color:#e70488">Pandas</strong>, and <strong style="color:#4dabcf">NumPy</strong>.
+    Written for beginners and intermediate learners, this book takes you from fundamentals to
+    real-world applications — step by step, with clear explanations, practical examples,
+    and 50+ coding exercises.
+  </div>
+
+  <!-- Chapters grid -->
+  <div class="chapters">
+    <div class="ch-item"><div class="ch-icon">🐍</div><div class="ch-text"><strong>Python Basics</strong>Variables, loops, functions & OOP</div></div>
+    <div class="ch-item"><div class="ch-icon">🐼</div><div class="ch-text"><strong>Pandas Core</strong>DataFrames, Series & indexing</div></div>
+    <div class="ch-item"><div class="ch-icon">⚡</div><div class="ch-text"><strong>NumPy Arrays</strong>Broadcasting, math & linear algebra</div></div>
+    <div class="ch-item"><div class="ch-icon">🧹</div><div class="ch-text"><strong>Data Wrangling</strong>Cleaning, merging & reshaping</div></div>
+    <div class="ch-item"><div class="ch-icon">📊</div><div class="ch-text"><strong>Visualization</strong>Matplotlib & Seaborn basics</div></div>
+    <div class="ch-item"><div class="ch-icon">🚀</div><div class="ch-text"><strong>Projects</strong>3 end-to-end real datasets</div></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Author bio -->
+  <div class="author-bio">
+    <div class="avatar">👨‍💻</div>
+    <div class="bio-text">
+      <div class="bio-name">Author Name</div>
+      <div class="bio-role">Data Scientist · Python Instructor</div>
+      <div class="bio-desc">
+        5+ years teaching Python &amp; data science. Worked with Fortune 500 companies
+        on large-scale data pipelines and ML systems.
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom: ISBN + barcode + price -->
+  <div class="bottom-bar">
+    <div class="isbn-block">
+      <div class="isbn-label">ISBN</div>
+      <div class="isbn-num">978-0-000-00000-0</div>
+      <div class="barcode" style="margin-top:6px"></div>
+    </div>
+    <div class="price-tag">
+      ₹499
+      <small>Paperback</small>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

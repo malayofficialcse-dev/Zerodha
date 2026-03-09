@@ -1,6 +1,19 @@
 import IntradayTrade from "../models/intradayTradeModel.js";
 import StockModel from "../models/stockModel.js";
 import HoldingModel from "../models/holdingsModel.js";
+import redisClient from "../services/redisClient.js";
+
+// Helper function to invalidate intraday and holdings cache
+const invalidateUserTradingCache = async (userId) => {
+  try {
+    if (redisClient.status === 'ready') {
+      await redisClient.del(`user:${userId}:intraday`);
+      await redisClient.del(`user:${userId}:holdings`);
+    }
+  } catch (err) {
+    console.error("Cache invalidation failed for intraday trade:", err);
+  }
+};
 
 // Buy
 export const buyIntraday = async (req, res) => {
@@ -42,6 +55,9 @@ export const buyIntraday = async (req, res) => {
     });
   }
 
+  // -> INVALIDATE CACHE
+  await invalidateUserTradingCache(userId);
+
   res.json(trade);
 };
 
@@ -69,14 +85,44 @@ export const sellIntraday = async (req, res) => {
     }
   }
 
+  // -> INVALIDATE CACHE
+  await invalidateUserTradingCache(trade.user);
+
   res.json(trade);
 };
 
 // Get user's intraday trades
 export const getUserIntraday = async (req, res) => {
   const userId = req.user.userId;
-  const trades = await IntradayTrade.find({ user: userId }).populate("stock");
-  res.json(trades);
+  const cacheKey = `user:${userId}:intraday`;
+
+  try {
+    let cachedIntraday = null;
+    if (redisClient.status === 'ready') {
+      cachedIntraday = await redisClient.get(cacheKey);
+    }
+    
+    if (cachedIntraday) {
+      return res.json(JSON.parse(cachedIntraday));
+    }
+    
+    const trades = await IntradayTrade.find({ user: userId }).populate("stock");
+    
+    // Cache for 60 seconds
+    if (redisClient.status === 'ready') {
+      await redisClient.setex(cacheKey, 60, JSON.stringify(trades));
+    }
+    
+    res.json(trades);
+  } catch (err) {
+    console.error("Redis Cache Error in getUserIntraday:", err);
+    try {
+      const trades = await IntradayTrade.find({ user: req.user.userId }).populate("stock");
+      res.json(trades);
+    } catch (dbErr) {
+      res.status(500).json({ error: dbErr.message });
+    }
+  }
 };
 
 // Auto-sell (run every minute)
@@ -108,6 +154,9 @@ export const autoSellIntraday = async (req, res) => {
           await holding.save();
         }
       }
+      
+      // -> INVALIDATE CACHE
+      await invalidateUserTradingCache(trade.user);
       
       // TODO: send notification to user (email/push)
     }
