@@ -4,6 +4,7 @@ import http from "http";
 import cors from "cors";
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
+import client from "prom-client";
 
 import { initKafkaProducer, publishTick } from "./services/kafkaService.js";
 import { initStreamingServer } from "./websockets/streamingServer.js";
@@ -217,8 +218,54 @@ app.use("/api/stocks", stockRoutes);
 app.use("/api/intraday", intradayRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/correlation", correlationRoutes);
-app.use("/api/alerts", alertRoutes);
+app.use("/api/alert", alertRoutes);
 app.use("/api/analytics", analyticsRoutes);
+
+// Prometheus Metrics Definitions
+const collectDefaultMetrics = client.collectDefaultMetrics;
+collectDefaultMetrics({ register: client.register });
+
+// Custom Business Metrics
+const orderCounter = new client.Counter({
+    name: 'zerodha_orders_total',
+    help: 'Total number of orders placed via the API',
+    labelNames: ['type', 'symbol']
+});
+
+const requestDuration = new client.Histogram({
+    name: 'http_request_duration_seconds',
+    help: 'Duration of HTTP requests in seconds',
+    labelNames: ['method', 'route', 'status_code'],
+    buckets: [0.1, 0.5, 1, 2, 5]
+});
+
+// Middleware to track request duration
+app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+        const duration = (Date.now() - start) / 1000;
+        const route = req.route ? req.route.path : req.path;
+        requestDuration.labels(req.method, route, res.statusCode).observe(duration);
+    });
+    next();
+});
+
+// Wrap order routes to increment metrics
+app.use("/api/order", (req, res, next) => {
+    if (req.method === 'POST') {
+        orderCounter.labels('market', req.body.symbol || 'unknown').inc();
+    }
+    next();
+}, ordersRoutes);
+
+app.get('/metrics', async (req, res) => {
+    try {
+        res.set('Content-Type', client.register.contentType);
+        res.end(await client.register.metrics());
+    } catch (ex) {
+        res.status(500).end(ex);
+    }
+});
 
 
 // Connect to DB, load Kafka, then start server
