@@ -20,6 +20,8 @@ import correlationRoutes from "./routes/correlationRoutes.js";
 import alertRoutes from "./routes/alertRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
 import { loadActiveAlerts } from "./services/alertEngine.js";
+import { initRabbitMQ } from "./services/rabbitMQClient.js";
+import { startNotificationWorker } from "./workers/notificationWorker.js";
 
 
 
@@ -227,6 +229,9 @@ connectDB().then(async () => {
   await initKafkaProducer();
   await initStreamingServer(httpServer);
   await loadActiveAlerts(); // Load alerts into memory
+  
+  await initRabbitMQ();
+  startNotificationWorker();
 
   await startLiveTicks(); 
   

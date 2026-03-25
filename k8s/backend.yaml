@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: zerodha
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: your-docker-hub-user/zerodha-backend:latest
+        ports:
+        - containerPort: 3005
+        env:
+        - name: MONGO_URL
+          value: "mongodb://mongodb-service:27017/zerodha"
+        - name: REDIS_HOST
+          value: "redis-service"
+        - name: RABBITMQ_URL
+          value: "amqp://guest:guest@rabbitmq-service:5672"
+        - name: KAFKA_BROKER
+          value: "kafka-service:9092"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: zerodha-secrets
+              key: jwt-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: zerodha
+spec:
+  selector:
+    app: backend
+  ports:
+  - protocol: TCP
+    port: 3005
+    targetPort: 3005
+  type: ClusterIP

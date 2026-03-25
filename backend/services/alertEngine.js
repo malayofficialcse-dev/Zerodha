@@ -1,5 +1,5 @@
 import AlertModel from "../models/AlertModel.js";
-import { sendEmail, sendTelegram } from "./notificationService.js";
+import { publishNotification } from "./rabbitMQClient.js";
 
 let activeAlerts = [];
 
@@ -46,13 +46,22 @@ export const checkAlerts = async (tick, onTrigger) => {
       
       console.log(`🔔 ALERT TRIGGERED: ${alert.symbol} ${alert.condition} ${alert.targetPrice} (Price: ${tick.close})`);
       
-      // Trigger multi-channel notifications
+      // Offload notifications to RabbitMQ
       if (alert.notifyEmail && alert.email) {
-        sendEmail(alert.email, `Price Alert: ${alert.symbol}`, message.replace(/<[^>]*>/g, ""));
+        publishNotification({
+          type: "email",
+          to: alert.email,
+          subject: `Price Alert: ${alert.symbol}`,
+          message: message.replace(/<[^>]*>/g, "")
+        });
       }
       
       if (alert.notifyTelegram && alert.telegramChatId) {
-        sendTelegram(alert.telegramChatId, message);
+        publishNotification({
+          type: "telegram",
+          chatId: alert.telegramChatId,
+          message: message
+        });
       }
 
       onTrigger(alert, tick.close);
