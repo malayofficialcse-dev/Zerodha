@@ -13,7 +13,7 @@ function Footer() {
               className="mb-2"
             />
             <p style={{ fontSize: "15px" }}>
-              &copy; 2010 - 2024, Not Zerodha Broking Ltd. All rights reserved.
+              &copy; 2010 - 2024,  Not Zerodha Broking Ltd. All rights reserved.
             </p>
           </div>
           <div className="col-6 col-md-3">
