@@ -39,9 +39,14 @@ const CandleChartIntraday = () => {
   // Refs to freeze the time offset to exactly when the symbol data was first loaded
   const timeOffsetRef = useRef(0);
   const prevSymbolRef = useRef(selectedSymbol);
+  const lastCandleTimeRef = useRef(null); // tracks start of current candle period
+
+  // 1-minute candle duration for intraday
+  const INTRADAY_CANDLE_MS = 60_000;
 
   if (prevSymbolRef.current !== selectedSymbol) {
     timeOffsetRef.current = 0;
+    lastCandleTimeRef.current = null; // reset candle timer on symbol switch
     prevSymbolRef.current = selectedSymbol;
   }
 
@@ -80,18 +85,44 @@ const CandleChartIntraday = () => {
       if (!isMounted) return;
       if (tickData.symbol !== selectedSymbol) return;
 
+      const now = Date.now();
+
       setOhlc((prevOhlc) => {
         if (!prevOhlc || prevOhlc.length === 0) return prevOhlc;
-        const newOhlc = [...prevOhlc];
-        const lastIndex = newOhlc.length - 1;
-        newOhlc[lastIndex] = {
-          ...newOhlc[lastIndex],
-          close: tickData.close,
-          high: Math.max(newOhlc[lastIndex].high, tickData.high),
-          low: Math.min(newOhlc[lastIndex].low, tickData.low),
-          volume: newOhlc[lastIndex].volume + tickData.volume
-        };
-        return newOhlc;
+
+        // Initialise the ref on first tick
+        if (lastCandleTimeRef.current === null) {
+          const lastTs = new Date(prevOhlc[prevOhlc.length - 1].date).getTime();
+          lastCandleTimeRef.current = lastTs;
+        }
+
+        const elapsed = now - lastCandleTimeRef.current;
+
+        if (elapsed >= INTRADAY_CANDLE_MS) {
+          // ── New candle: 1-minute period has elapsed ──
+          lastCandleTimeRef.current = now;
+          const newCandle = {
+            date:   new Date(now).toISOString(),
+            open:   tickData.close,
+            high:   tickData.close,
+            low:    tickData.close,
+            close:  tickData.close,
+            volume: tickData.volume || 0,
+          };
+          return [...prevOhlc, newCandle];
+        } else {
+          // ── Same candle: update OHLC in-place ──
+          const newOhlc = [...prevOhlc];
+          const lastIndex = newOhlc.length - 1;
+          newOhlc[lastIndex] = {
+            ...newOhlc[lastIndex],
+            close:  tickData.close,
+            high:   Math.max(newOhlc[lastIndex].high,  tickData.high  ?? tickData.close),
+            low:    Math.min(newOhlc[lastIndex].low,   tickData.low   ?? tickData.close),
+            volume: (newOhlc[lastIndex].volume || 0) + (tickData.volume || 0),
+          };
+          return newOhlc;
+        }
       });
     });
 

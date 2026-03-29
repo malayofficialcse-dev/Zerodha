@@ -507,11 +507,11 @@ function detectCandlestickPatterns(ohlc) {
 
 // ─── Timeframe options ────────────────────────────────────────
 const TIMEFRAMES = [
-  { label: "5s",  candles: 20  },
-  { label: "1m",  candles: 60  },
-  { label: "5m",  candles: 50  },
-  { label: "1H",  candles: 60  },
-  { label: "1D",  candles: 100 },
+  { label: "5s",  candles: 20,  durationMs: 5_000        },
+  { label: "1m",  candles: 60,  durationMs: 60_000       },
+  { label: "5m",  candles: 50,  durationMs: 300_000      },
+  { label: "1H",  candles: 60,  durationMs: 3_600_000    },
+  { label: "1D",  candles: 100, durationMs: 86_400_000   },
 ];
 
 // ─── Helper: compute simple MA ───────────────────────────────
@@ -612,6 +612,9 @@ const CandlestickCharts = () => {
   const [compareStock, setCompareStock] = useState("");
   const [compareData, setCompareData]   = useState([]);
 
+  // Track when the current candle period started (used for auto-append)
+  const lastCandleTimeRef = useRef(null);
+
   const allSymbols = useMemo(() => companies.map(c => c.symbol), [companies]);
   const liveTick = useRealTimeTicks(allSymbols);
 
@@ -636,12 +639,18 @@ const CandlestickCharts = () => {
   // ── Fetch OHLC data for selected stock ──
   useEffect(() => {
     if (!selected) return;
+    lastCandleTimeRef.current = null; // reset candle timer for new stock
     axios.get(`${API_BASE_URL}/stocks/${selected}/ohlc`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
     }).then((res) => {
       setOhlc(res.data || []);
     }).catch(err => console.error(err));
   }, [selected]);
+
+  // ── Reset candle timer when timeframe changes ──
+  useEffect(() => {
+    lastCandleTimeRef.current = null;
+  }, [tfIndex]);
 
   // ── Fetch OHLC data for compared stock ──
   useEffect(() => {
@@ -661,24 +670,50 @@ const CandlestickCharts = () => {
   useEffect(() => {
     if (!selectedTick || ohlc.length === 0) return;
 
+    const candleDurationMs = TIMEFRAMES[tfIndex].durationMs;
+    const now = Date.now();
+
     setOhlc((prev) => {
       if (prev.length === 0) return prev;
       const lastIdx = prev.length - 1;
       const lastCandle = prev[lastIdx];
+      const lastCandleTimestamp = new Date(lastCandle.date).getTime();
 
-      const updatedCandle = {
-        ...lastCandle,
-        close: selectedTick.price,
-        high: Math.max(lastCandle.high, selectedTick.price),
-        low: Math.min(lastCandle.low, selectedTick.price),
-        volume: selectedTick.volume,
-      };
+      // Initialise the ref the first time
+      if (lastCandleTimeRef.current === null) {
+        lastCandleTimeRef.current = lastCandleTimestamp;
+      }
 
-      const next = [...prev];
-      next[lastIdx] = updatedCandle;
-      return next;
+      const elapsed = now - lastCandleTimeRef.current;
+
+      if (elapsed >= candleDurationMs) {
+        // ── New candle: period has elapsed ──
+        lastCandleTimeRef.current = now;
+        const newDate = new Date(now).toISOString();
+        const newCandle = {
+          date: newDate,
+          open:   selectedTick.price,
+          high:   selectedTick.price,
+          low:    selectedTick.price,
+          close:  selectedTick.price,
+          volume: selectedTick.volume || Math.floor(Math.random() * 5000 + 1000),
+        };
+        return [...prev, newCandle];
+      } else {
+        // ── Same candle: update OHLC in-place ──
+        const updatedCandle = {
+          ...lastCandle,
+          close: selectedTick.price,
+          high:  Math.max(lastCandle.high, selectedTick.price),
+          low:   Math.min(lastCandle.low,  selectedTick.price),
+          volume: selectedTick.volume,
+        };
+        const next = [...prev];
+        next[lastIdx] = updatedCandle;
+        return next;
+      }
     });
-  }, [selectedTick, selected]);
+  }, [selectedTick, selected, tfIndex]);
 
   // ── Build chart data scoped to selected timeframe ──
   const { chartData, volumeData, rsiData, macdData, indicators, patternMarkers, compareSeries } = useMemo(() => {
