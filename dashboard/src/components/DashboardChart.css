@@ -1,0 +1,109 @@
+.dbchart-root {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.dbchart-card {
+  background: var(--surface-bg, #fff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dbchart-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: #387ed1;
+}
+
+.dbchart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.dbchart-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #387ed1;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.dbchart-badge {
+  background: rgba(56, 126, 209, 0.1);
+  color: #387ed1;
+  padding: 4px 12px;
+  border-radius: 30px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.dbchart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.dbchart-metric-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.dbchart-metric-item {
+  text-align: center;
+  padding: 16px;
+  background: var(--bg-surface);
+  border-radius: 12px;
+}
+
+.dbchart-metric-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.dbchart-metric-val {
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.dbchart-metric-val.up { color: #22c55e; }
+.dbchart-metric-val.down { color: #ef4444; }
+
+/* Custom Progress Bar */
+.dbchart-progress-wrap {
+  margin-top: 24px;
+}
+
+.dbchart-progress-top {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.dbchart-progress-track {
+  height: 8px;
+  background: var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dbchart-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 1s ease;
+}
+
+/* Glass effect for charts */
+.apexcharts-canvas {
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.05));
+}
