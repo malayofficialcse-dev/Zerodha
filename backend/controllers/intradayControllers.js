@@ -1,6 +1,7 @@
 import IntradayTrade from "../models/intradayTradeModel.js";
 import StockModel from "../models/stockModel.js";
 import HoldingModel from "../models/holdingsModel.js";
+import UserModel from "../models/usersModel.js";
 import redisClient from "../services/redisClient.js";
 
 // Helper function to invalidate intraday and holdings cache
@@ -22,6 +23,23 @@ export const buyIntraday = async (req, res) => {
   const userId = req.user.userId; // from auth middleware
   const stock = await StockModel.findOne({ symbol });
   if (!stock) return res.status(404).json({ error: "Stock not found" });
+
+  const user = await UserModel.findById(userId);
+  if (!user || user.kycStatus !== "approved") {
+    return res.status(403).json({ error: "KYC not approved. Please submit KYC and wait for Admin approval." });
+  }
+
+  const cost = Number(qty) * Number(buyPrice);
+  if (user.cashBalance < cost) {
+    return res.status(400).json({ error: `Insufficient funds. Required: ₹${cost.toFixed(2)}, Available: ₹${user.cashBalance.toFixed(2)}` });
+  }
+
+  user.cashBalance -= cost;
+  await user.save();
+  if (redisClient.status === "ready") {
+    await redisClient.del(`user:${userId}:profile`);
+  }
+
   console.log("req.user in buyIntraday:", req.user);
   const trade = await IntradayTrade.create({
     user: userId,
@@ -73,6 +91,15 @@ export const sellIntraday = async (req, res) => {
   trade.status = "CLOSED";
   trade.profitOrLoss = (sellPrice - trade.buyPrice) * trade.qty;
   await trade.save();
+
+  const user = await UserModel.findById(trade.user);
+  if (user) {
+    user.cashBalance += Number(trade.qty) * Number(sellPrice);
+    await user.save();
+    if (redisClient.status === "ready") {
+      await redisClient.del(`user:${trade.user}:profile`);
+    }
+  }
 
   // --- Synchronize with user Holdings ---
   let holding = await HoldingModel.findOne({ user: trade.user, name: trade.symbol });
@@ -143,6 +170,15 @@ export const autoSellIntraday = async (req, res) => {
       trade.status = "AUTO";
       trade.profitOrLoss = (currentPrice - trade.buyPrice) * trade.qty;
       await trade.save();
+      
+      const user = await UserModel.findById(trade.user);
+      if (user) {
+        user.cashBalance += Number(trade.qty) * Number(currentPrice);
+        await user.save();
+        if (redisClient.status === "ready") {
+          await redisClient.del(`user:${trade.user}:profile`);
+        }
+      }
       
       // --- Synchronize with user Holdings ---
       let holding = await HoldingModel.findOne({ user: trade.user, name: trade.symbol });

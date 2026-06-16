@@ -1,6 +1,7 @@
 import UserModel from "../models/usersModel.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import redisClient from "../services/redisClient.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
 
@@ -89,5 +90,57 @@ export const getUserProfile = async (req, res) => {
     } catch (dbErr) {
       res.status(400).json({ error: dbErr.message });
     }
+  }
+};
+
+export const submitKYC = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { fullName, dob, phone, pan, aadhaar, bankName, accountNumber, ifsc, address } = req.body;
+
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    user.kyc = {
+      fullName,
+      dob,
+      phone,
+      pan,
+      aadhaar,
+      bankName,
+      accountNumber,
+      ifsc,
+      address,
+      submittedAt: new Date()
+    };
+    user.kycStatus = "pending";
+    await user.save();
+
+    if (redisClient.status === "ready") {
+      await redisClient.del(`user:${userId}:profile`);
+    }
+
+    res.json({ message: "KYC submitted successfully and is pending review.", kycStatus: "pending" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const getBalance = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const user = await UserModel.findById(userId).select("cashBalance kycStatus kyc");
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    res.json({
+      cashBalance: user.cashBalance,
+      kycStatus: user.kycStatus,
+      kyc: user.kyc
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };

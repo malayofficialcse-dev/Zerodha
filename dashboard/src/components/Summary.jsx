@@ -68,6 +68,28 @@ const Summary = () => {
   const [analytics, setAnalytics] = useState(null);   // risk metrics + sectors
   const [ticks, setTicks] = useState({});              // { SYMBOL: { close, high, low, volume } }
   const [sparkHistory, setSparkHistory] = useState({}); // { SYMBOL: [prices…] }
+  const [orders, setOrders] = useState([]);
+  const [cashBalance, setCashBalance] = useState(0);
+
+  // Load cash balance
+  useEffect(() => {
+    axios
+      .get(`${API_BASE_URL}/user/balance`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      })
+      .then((res) => setCashBalance(res.data.cashBalance || 0))
+      .catch(() => {});
+  }, []);
+
+  // Load orders
+  useEffect(() => {
+    axios
+      .get(`${API_BASE_URL}/order`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      })
+      .then((res) => setOrders(res.data || []))
+      .catch(() => {});
+  }, []);
 
   // Load holdings
   useEffect(() => {
@@ -165,23 +187,67 @@ const Summary = () => {
     return { gainers: sorted.slice(0, 5), losers: sorted.slice(-5).reverse() };
   }, [stocks, ticks]);
 
-  // Rolling P&L area chart – portfolio value per OHLC day
+  // Rolling P&L area chart – portfolio value per OHLC day based on transaction history
   const pnlChartData = useMemo(() => {
-    if (!holdings.length || !stocks.length) return [];
-    const dayMap = {};
-    holdings.forEach((h) => {
-      const stock = stocks.find((s) => s.name === h.name);
-      if (!stock?.ohlc?.length) return;
-      stock.ohlc.forEach((bar) => {
-        const d = bar.date?.slice(0, 10) || "";
-        if (!d) return;
-        dayMap[d] = (dayMap[d] || 0) + bar.close * h.qty;
+    if (!stocks.length) return [];
+    if (!orders.length) {
+      if (!holdings.length) return [];
+      const dayMap = {};
+      holdings.forEach((h) => {
+        const stock = stocks.find((s) => s.name === h.name || s.symbol === h.symbol);
+        if (!stock?.ohlc?.length) return;
+        stock.ohlc.forEach((bar) => {
+          const d = bar.date?.slice(0, 10) || "";
+          if (!d) return;
+          dayMap[d] = (dayMap[d] || 0) + bar.close * h.qty;
+        });
       });
+      return Object.entries(dayMap)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([date, val]) => ({ x: new Date(date).getTime(), y: parseFloat(val.toFixed(2)) }));
+    }
+
+    const allDatesSet = new Set();
+    stocks.forEach(s => {
+      if (s.ohlc) {
+        s.ohlc.forEach(b => {
+          if (b.date) allDatesSet.add(b.date.slice(0, 10));
+        });
+      }
     });
-    return Object.entries(dayMap)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, val]) => ({ x: new Date(date).getTime(), y: parseFloat(val.toFixed(2)) }));
-  }, [holdings, stocks]);
+
+    const sortedDates = Array.from(allDatesSet).sort((a, b) => a.localeCompare(b));
+    if (sortedDates.length === 0) {
+      return [{ x: Date.now(), y: cashBalance }];
+    }
+
+    return sortedDates.map(d => {
+      const holdingsOnDay = {};
+      orders.forEach(order => {
+        const orderDate = new Date(order.createdAt || Date.now()).toISOString().slice(0, 10);
+        if (orderDate <= d) {
+          if (!holdingsOnDay[order.name]) holdingsOnDay[order.name] = 0;
+          if (order.mode === "BUY") {
+            holdingsOnDay[order.name] += order.qty;
+          } else if (order.mode === "SELL") {
+            holdingsOnDay[order.name] = Math.max(0, holdingsOnDay[order.name] - order.qty);
+          }
+        }
+      });
+
+      let portfolioVal = 0;
+      Object.entries(holdingsOnDay).forEach(([name, qty]) => {
+        if (qty <= 0) return;
+        const stock = stocks.find(s => s.name === name || s.symbol === name);
+        if (!stock) return;
+        const bar = stock.ohlc?.find(b => b.date.slice(0, 10) === d);
+        const price = bar ? bar.close : stock.currentPrice;
+        portfolioVal += qty * price;
+      });
+
+      return { x: new Date(d).getTime(), y: parseFloat(portfolioVal.toFixed(2)) };
+    });
+  }, [holdings, stocks, orders, cashBalance]);
 
   // ── Chart Options ──────────────────────────────────────────────
   const pnlOpts = {
@@ -225,6 +291,14 @@ const Summary = () => {
           pulse
         />
         <KpiCard
+          icon="💰"
+          label="Cash Balance"
+          value={`₹${fmt(cashBalance)}`}
+          sub="Available to trade"
+          subColor="#22c55e"
+          pulse
+        />
+        <KpiCard
           icon="📈"
           label="Total P&L"
           value={`${pnlSign}₹${fmt(Math.abs(todayPnl))}`}
@@ -248,13 +322,6 @@ const Summary = () => {
           label="Beta"
           value={metrics ? metrics.beta.toFixed(2) : "—"}
           sub="vs Market"
-        />
-        <KpiCard
-          icon="🔻"
-          label="Max Drawdown"
-          value={metrics ? `${metrics.maxDrawdown.toFixed(1)}%` : "—"}
-          subColor="#ef4444"
-          sub="Historical"
         />
       </div>
 

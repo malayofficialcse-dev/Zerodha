@@ -23,6 +23,26 @@ const TopBar = () => {
   const { isSidebarOpen } = React.useContext(GeneralContext);
   const [seedPrices, setSeedPrices] = useState({});
   const [marketOpen, setMarketOpen] = useState(true);
+  const [balance, setBalance] = useState(0);
+
+  const fetchBalance = () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    axios
+      .get(`${API_BASE_URL}/user/balance`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then((res) => {
+        setBalance(res.data.cashBalance || 0);
+      })
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchBalance();
+    const interval = setInterval(fetchBalance, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Check market hours (IST 9:15 – 15:30)
   useEffect(() => {
@@ -106,6 +126,22 @@ const TopBar = () => {
         <div className="topbar-right">
           <div className="indices-container">
             {INDEX_SYMBOLS.map((sym) => renderIndex(sym))}
+            <div className="balance-badge" style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "4px 12px",
+              borderRadius: "4px",
+              fontSize: "13px",
+              fontWeight: "600",
+              background: theme === "light" ? "#f1f5f9" : "#1e293b",
+              color: "#10b981",
+              border: "1px solid rgba(16, 185, 129, 0.2)",
+              marginRight: "10px"
+            }}>
+              <span>💰</span>
+              <span>₹{balance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
             <button
               onClick={toggleTheme}
               className="btn-theme-toggle"
@@ -114,7 +150,7 @@ const TopBar = () => {
                 border: "none",
                 fontSize: "1.2rem",
                 cursor: "pointer",
-                marginLeft: "15px",
+                marginLeft: "5px",
                 padding: "5px",
               }}
               title={theme === "light" ? "Dark Mode" : "Light Mode"}

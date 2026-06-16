@@ -1,4 +1,8 @@
 import AlertModel from "../models/AlertModel.js";
+import IntradayTrade from "../models/intradayTradeModel.js";
+import HoldingModel from "../models/holdingsModel.js";
+import UserModel from "../models/usersModel.js";
+import redisClient from "./redisClient.js";
 import { publishNotification } from "./rabbitMQClient.js";
 
 let activeAlerts = [];
@@ -66,5 +70,72 @@ export const checkAlerts = async (tick, onTrigger) => {
 
       onTrigger(alert, tick.close);
     }
+  }
+};
+
+/**
+ * Check intraday positions against a new tick to trigger SL / Target
+ */
+export const checkIntradayAlerts = async (tick) => {
+  try {
+    const openTrades = await IntradayTrade.find({ symbol: tick.symbol, status: "OPEN" });
+    for (const trade of openTrades) {
+      let shouldSell = false;
+      if (trade.limitType === "STOPLOSS" && tick.close <= trade.limitValue) {
+        shouldSell = true;
+      }
+      if (trade.limitType === "TARGET" && tick.close >= trade.limitValue) {
+        shouldSell = true;
+      }
+
+      if (shouldSell) {
+        trade.sellPrice = tick.close;
+        trade.sellTime = new Date();
+        trade.status = "AUTO";
+        trade.profitOrLoss = (tick.close - trade.buyPrice) * trade.qty;
+        await trade.save();
+
+        const user = await UserModel.findById(trade.user);
+        if (user) {
+          user.cashBalance += trade.qty * tick.close;
+          await user.save();
+          if (redisClient.status === "ready") {
+            await redisClient.del(`user:${trade.user}:profile`);
+          }
+        }
+
+        let holding = await HoldingModel.findOne({ user: trade.user, name: trade.symbol });
+        if (holding) {
+          holding.qty -= trade.qty;
+          if (holding.qty <= 0) {
+            await HoldingModel.deleteOne({ _id: holding._id });
+          } else {
+            await holding.save();
+          }
+        }
+
+        if (redisClient.status === "ready") {
+          await redisClient.del(`user:${trade.user}:intraday`);
+          await redisClient.del(`user:${trade.user}:holdings`);
+        }
+
+        // Publish alert to RabbitMQ
+        const alertMsg = {
+          type: "position-alert",
+          userId: trade.user.toString(),
+          symbol: trade.symbol,
+          qty: trade.qty,
+          limitType: trade.limitType,
+          limitValue: trade.limitValue,
+          triggerPrice: tick.close,
+          pnl: trade.profitOrLoss,
+          timestamp: new Date().toISOString()
+        };
+        await publishNotification(alertMsg);
+        console.log(`[AlertEngine] Intraday SL/Target hit: ${trade.symbol} at ₹${tick.close}. Published to RabbitMQ.`);
+      }
+    }
+  } catch (err) {
+    console.error("[AlertEngine] Error checking intraday alerts:", err.message);
   }
 };

@@ -53,11 +53,11 @@ const AreaChart = ({ data }) => {
   const series = [
     {
       name: "Investment",
-      data: data.map((d) => (d.avg * d.qty).toFixed(2)),
+      data: data.map((d) => Number(((d.avg || 0) * (d.qty || 0)).toFixed(2))),
     },
     {
       name: "Current Value",
-      data: data.map((d) => (d.price * d.qty).toFixed(2)),
+      data: data.map((d) => Number(((d.price || d.avg || 0) * (d.qty || 0)).toFixed(2))),
     },
   ];
 

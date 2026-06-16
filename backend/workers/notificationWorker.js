@@ -18,12 +18,19 @@ export const startNotificationWorker = async () => {
         const notification = JSON.parse(msg.content.toString());
         const { type, to, subject, message, chatId } = notification;
 
-        console.log(`[NotificationWorker] Processing ${type} for ${to || chatId}`);
+        console.log(`[NotificationWorker] Processing ${type}`);
 
         if (type === "email") {
           await sendEmail(to, subject, message);
         } else if (type === "telegram") {
           await sendTelegram(chatId, message);
+        } else if (type === "position-alert") {
+          const { getIO } = await import("../websockets/streamingServer.js");
+          const io = getIO();
+          if (io) {
+            console.log(`[NotificationWorker] Emitting position-alert for user ${notification.userId}: ${notification.symbol}`);
+            io.emit("position-alert", notification);
+          }
         }
 
         channel.ack(msg); // Acknowledge message processed

@@ -45,6 +45,21 @@ const Dashboard = () => {
       );
     });
 
+    socket.on("position-alert", (alert) => {
+      toast.error(
+        `🚨 STOP-LOSS / TARGET HIT: Intraday ${alert.symbol} position closed at ₹${alert.triggerPrice.toFixed(2)} (${alert.limitType} of ₹${alert.limitValue.toFixed(2)} reached). P&L: ₹${alert.pnl.toFixed(2)}`,
+        {
+          position: "top-right",
+          autoClose: 10000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          theme: "colored",
+        }
+      );
+    });
+
     return () => socket.disconnect();
   }, []);
 

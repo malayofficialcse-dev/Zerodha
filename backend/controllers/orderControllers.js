@@ -136,6 +136,7 @@
 import OrdersModel from "../models/ordersModel.js";
 import HoldingModel from "../models/holdingsModel.js";
 import PositionsModel from "../models/positionsModel.js";
+import UserModel from "../models/usersModel.js";
 import mongoose from "mongoose";
 import redisClient from "../services/redisClient.js";
 
@@ -191,6 +192,27 @@ export const createNewOrder = async (req, res) => {
     }
     if (typeof price !== "number" || price <= 0) {
       return res.status(400).json({ error: "Invalid price" });
+    }
+
+    const user = await UserModel.findById(userId);
+    if (!user || user.kycStatus !== "approved") {
+      return res.status(403).json({ error: "KYC not approved. Please submit KYC and wait for Admin approval." });
+    }
+
+    if (mode === "BUY") {
+      const cost = qty * price;
+      if (user.cashBalance < cost) {
+        return res.status(400).json({ error: `Insufficient funds. Required: ₹${cost.toFixed(2)}, Available: ₹${user.cashBalance.toFixed(2)}` });
+      }
+      user.cashBalance -= cost;
+      await user.save();
+    } else if (mode === "SELL") {
+      user.cashBalance += qty * price;
+      await user.save();
+    }
+
+    if (redisClient.status === "ready") {
+      await redisClient.del(`user:${userId}:profile`);
     }
 
     if (mode === "SELL") {

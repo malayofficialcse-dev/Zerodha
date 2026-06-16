@@ -18,6 +18,7 @@ import stockRoutes from "./routes/stockRoutes.js";
 import intradayRoutes from "./routes/intradayRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import alertRoutes from "./routes/alertRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 import { loadActiveAlerts } from "./services/alertEngine.js";
 import { initRabbitMQ } from "./services/rabbitMQClient.js";
 import { startNotificationWorker } from "./workers/notificationWorker.js";
@@ -255,6 +256,7 @@ app.use("/api/position", positionsRoutes);
 app.use("/api/order", ordersRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/stocks", stockRoutes);
+app.use("/api/admin", adminRoutes);
 
 // ── Live intraday OHLC: served from in-memory store (real 5-second candles) ──
 // Must be registered BEFORE the generic intradayRoutes to take precedence.

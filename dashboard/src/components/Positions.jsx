@@ -6,22 +6,57 @@ import { useRealTimeTicks } from "../hooks/useRealTimeTicks.js";
 
 const Positions = () => {
   const [allPositions, setAllPositions] = useState([]);
+  const [stocks, setStocks] = useState([]);
 
   useEffect(() => {
+    // Fetch user positions
     axios.get(`${API_BASE_URL}/position/allPositions`).then((res) => {
-      setAllPositions(res.data);
+      setAllPositions(res.data || []);
+    }).catch(err => {
+      console.error("Error fetching positions:", err);
+    });
+
+    // Fetch stocks for mapping names to symbols
+    axios.get(`${API_BASE_URL}/stocks/all`).then((res) => {
+      setStocks(res.data || []);
+    }).catch(err => {
+      console.error("Error fetching stocks:", err);
     });
   }, []);
 
+  // Map position names/symbols to correct ticker symbol
+  const getSymbol = (name) => {
+    const s = stocks.find(st => st.name === name || st.symbol === name);
+    return s ? s.symbol : name;
+  };
+
   // ── Real-Time Integration ────────────────────────────────────
-  const symbols = useMemo(() => Array.from(new Set(allPositions.map(p => p.name))), [allPositions]);
+  const symbols = useMemo(() => {
+    return Array.from(new Set(allPositions.map(p => getSymbol(p.name))));
+  }, [allPositions, stocks]);
+
   const initialPrices = useMemo(() => {
     const p = {};
-    allPositions.forEach(pos => { p[pos.name] = { price: pos.price, prevClose: pos.price }; });
+    allPositions.forEach(pos => {
+      const sym = getSymbol(pos.name);
+      p[sym] = { price: pos.price || pos.avg || 0, prevClose: pos.price || pos.avg || 0 };
+    });
     return p;
-  }, [allPositions]);
+  }, [allPositions, stocks]);
 
   const liveTicks = useRealTimeTicks(symbols, initialPrices);
+
+  // Map live prices back into positions for the chart
+  const enrichedPositions = useMemo(() => {
+    return allPositions.map(pos => {
+      const sym = getSymbol(pos.name);
+      const tick = liveTicks[sym] || { price: pos.price || pos.avg || 0 };
+      return {
+        ...pos,
+        price: tick.price
+      };
+    });
+  }, [allPositions, liveTicks, stocks]);
 
   return (
     <div className="positions-page">
@@ -32,7 +67,7 @@ const Positions = () => {
         </div>
       </div>
 
-      {allPositions.length > 0 && <AreaChart data={allPositions} />}
+      {enrichedPositions.length > 0 && <AreaChart data={enrichedPositions} />}
 
       <div className="table-responsive order-table">
         <table>
@@ -49,28 +84,35 @@ const Positions = () => {
           </thead>
           <tbody>
             {allPositions.map((stock, index) => {
-              const tick = liveTicks[stock.name] || { price: stock.price, prevClose: stock.price, changePct: "0.00" };
-              const curValue = tick.price * stock.qty;
-              const pnl = curValue - (stock.avg * stock.qty);
+              const sym = getSymbol(stock.name);
+              const tick = liveTicks[sym] || { 
+                price: stock.price || stock.avg || 0, 
+                prevClose: stock.price || stock.avg || 0, 
+                changePct: "0.00" 
+              };
+              
+              const currentLTP = typeof tick.price === "number" ? tick.price : (stock.price || stock.avg || 0);
+              const curValue = currentLTP * (stock.qty || 0);
+              const pnl = curValue - ((stock.avg || 0) * (stock.qty || 0));
               const isProfit = pnl >= 0;
 
               return (
                 <tr key={index} className="holding-row">
                   <td>
-                    <span className={stock.qty > 0 ? "badge-buy" : "badge-sell"}>
-                      {stock.product}
+                    <span className={(stock.qty || 0) > 0 ? "badge-buy" : "badge-sell"}>
+                      {stock.product || "MIS"}
                     </span>
                   </td>
                   <td className="instrument-col">{stock.name}</td>
-                  <td>{stock.qty}</td>
-                  <td>{stock.avg.toFixed(2)}</td>
+                  <td>{stock.qty || 0}</td>
+                  <td>{typeof stock.avg === "number" ? stock.avg.toFixed(2) : "0.00"}</td>
                   <td className={`price-col ${tick.isUp ? "up-flash" : "down-flash"}`}>
-                    {tick.price.toFixed(2)}
+                    {currentLTP.toFixed(2)}
                   </td>
                   <td className={isProfit ? "profit" : "loss"}>
                     {pnl.toFixed(2)}
                   </td>
-                  <td className={tick.isUp ? "profit" : "loss"}>{tick.changePct}%</td>
+                  <td className={tick.isUp ? "profit" : "loss"}>{tick.changePct || "0.00"}%</td>
                 </tr>
               );
             })}

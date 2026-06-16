@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 import { initKafkaConsumer } from "../services/kafkaService.js";
-import { checkAlerts } from "../services/alertEngine.js";
+import { checkAlerts, checkIntradayAlerts } from "../services/alertEngine.js";
 
 let io;
 
@@ -44,6 +44,9 @@ export const initStreamingServer = async (httpServer) => {
         });
       }
     });
+
+    // 3. Intraday stop-loss / target check
+    checkIntradayAlerts(tickData);
   });
 
 
