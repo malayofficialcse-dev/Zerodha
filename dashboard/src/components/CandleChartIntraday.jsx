@@ -36,16 +36,14 @@ const CandleChartIntraday = () => {
   const [showRSI, setShowRSI] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Refs to freeze the time offset to exactly when the symbol data was first loaded
-  const timeOffsetRef = useRef(0);
+  // Refs
   const prevSymbolRef = useRef(selectedSymbol);
   const lastCandleTimeRef = useRef(null); // tracks start of current candle period
 
-  // 1-minute candle duration for intraday
-  const INTRADAY_CANDLE_MS = 60_000;
+  // 5-second candle duration — matches the backend's 5s aggregation/persistence cycle
+  const INTRADAY_CANDLE_MS = 5_000;
 
   if (prevSymbolRef.current !== selectedSymbol) {
-    timeOffsetRef.current = 0;
     lastCandleTimeRef.current = null; // reset candle timer on symbol switch
     prevSymbolRef.current = selectedSymbol;
   }
@@ -75,8 +73,8 @@ const CandleChartIntraday = () => {
         .catch(() => setOhlc([]));
     };
 
+    // Initial fetch only — Socket.io ticks will build candles from here
     fetchData();
-    const intervalId = setInterval(fetchData, 5000);
 
     const socketURL = API_BASE_URL.replace("/api", "");
     const socket = io(socketURL);
@@ -87,29 +85,38 @@ const CandleChartIntraday = () => {
 
       const now = Date.now();
 
+      // ── Initialise ref on first tick ──
+      // Done here (outside the updater) so React's potential double-invocation
+      // of the state updater never corrupts the timing ref.
+      if (lastCandleTimeRef.current === null) {
+        lastCandleTimeRef.current = now;
+      }
+
+      const elapsed = now - lastCandleTimeRef.current;
+      const isNewCandle = elapsed >= INTRADAY_CANDLE_MS;
+
+      // Advance the window BEFORE calling setOhlc so the decision is made
+      // exactly once, regardless of how many times React calls the updater.
+      if (isNewCandle) {
+        lastCandleTimeRef.current = now;
+      }
+
       setOhlc((prevOhlc) => {
         if (!prevOhlc || prevOhlc.length === 0) return prevOhlc;
 
-        // Initialise the ref on first tick
-        if (lastCandleTimeRef.current === null) {
-          const lastTs = new Date(prevOhlc[prevOhlc.length - 1].date).getTime();
-          lastCandleTimeRef.current = lastTs;
-        }
-
-        const elapsed = now - lastCandleTimeRef.current;
-
-        if (elapsed >= INTRADAY_CANDLE_MS) {
-          // ── New candle: 1-minute period has elapsed ──
-          lastCandleTimeRef.current = now;
+        if (isNewCandle) {
+          // ── New candle: 5-second period has elapsed ──
           const newCandle = {
             date:   new Date(now).toISOString(),
-            open:   tickData.close,
-            high:   tickData.close,
-            low:    tickData.close,
+            open:   tickData.open  ?? tickData.close,
+            high:   tickData.high  ?? tickData.close,
+            low:    tickData.low   ?? tickData.close,
             close:  tickData.close,
             volume: tickData.volume || 0,
           };
-          return [...prevOhlc, newCandle];
+          // Keep only last 100 candles to avoid chart bloat
+          const updated = [...prevOhlc, newCandle];
+          return updated.length > 100 ? updated.slice(-100) : updated;
         } else {
           // ── Same candle: update OHLC in-place ──
           const newOhlc = [...prevOhlc];
@@ -128,7 +135,6 @@ const CandleChartIntraday = () => {
 
     return () => {
       isMounted = false;
-      clearInterval(intervalId);
       socket.disconnect();
     };
   }, [selectedSymbol]);
@@ -188,27 +194,20 @@ const CandleChartIntraday = () => {
   };
 
   const chartData = useMemo(() => {
-    // Calculate an offset exactly once per symbol load so it doesn't shift on every tick
-    if (timeOffsetRef.current === 0 && sortedOhlc.length > 0) {
-      const latestTimestamp = new Date(sortedOhlc[sortedOhlc.length - 1].date).getTime();
-      timeOffsetRef.current = Date.now() - latestTimestamp;
-    }
-    const timeOffset = timeOffsetRef.current;
-
     if (chartType === "candlestick") {
       return sortedOhlc.map((d) => ({
-        x: new Date(d.date).getTime() + timeOffset,
+        x: new Date(d.date).getTime(),
         y: [d.open, d.high, d.low, d.close],
       }));
     } else if (chartType === "bar") {
       return sortedOhlc.map((d) => ({
-        x: new Date(d.date).getTime() + timeOffset,
+        x: new Date(d.date).getTime(),
         y: d.close,
         fillColor: d.close >= d.open ? "#22c55e" : "#ef4444"
       }));
     } else {
       return sortedOhlc.map((d) => ({
-        x: new Date(d.date).getTime() + timeOffset,
+        x: new Date(d.date).getTime(),
         y: d.close,
       }));
     }
@@ -229,9 +228,8 @@ const CandleChartIntraday = () => {
   );
 
   const volumeData = useMemo(() => {
-    const timeOffset = timeOffsetRef.current;
     return sortedOhlc.map((d) => ({
-      x: new Date(d.date).getTime() + timeOffset,
+      x: new Date(d.date).getTime(),
       y: d.volume || Math.floor(Math.random() * 1000 + 1000),
     }));
   }, [sortedOhlc]);
@@ -263,7 +261,8 @@ const CandleChartIntraday = () => {
     },
     xaxis: {
       type: "datetime",
-      range: chartType === "candlestick" ? 3 * 60 * 1000 : undefined,
+      // Show 5 minutes = ~60 candles at 5-second interval
+      range: chartType === "candlestick" ? 300_000 : undefined,
       labels: {
         formatter: function(val) {
           if (!val) return "";

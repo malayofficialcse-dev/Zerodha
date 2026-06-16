@@ -36,36 +36,66 @@ const httpServer = http.createServer(app);
 // In-memory OHLC tracker for the 5-second window
 const memoryOHLC = {};
 
+// ── In-memory intraday candle store ──────────────────────────────────────────
+// Accumulates real 5-second OHLC candles since server start.
+// Cleared on server restart (acts as today's intraday session).
+// Key: stock symbol → Value: array of OHLC candles [{date,open,high,low,close,volume}]
+const intradayCandles = {};
+
 // Background Simulator: Generates instant ticks multiple times a second
 const startLiveTicks = async () => {
   const stocks = await mongoose.model("Stock").find({});
 
   // Initialize memory map in Redis or local fallback
   for (const stock of stocks) {
-    const last = stock.ohlc[stock.ohlc.length - 1] || { close: stock.currentPrice };
+    const basePrice = Number(stock.currentPrice) || 1000;
+    const _id = stock._id.toString();
+
+    // ── Pre-generate 50 synthetic 5-second candles going back 250 seconds ──
+    // This gives the chart immediate history instead of starting with 1 candle.
+    // Drift = ±0.3% per candle so OHLC bodies are clearly visible at any price.
+    const nowMs = Date.now();
+    const CANDLE_COUNT = 50;
+    const CANDLE_MS = 5000;
+    const syntheticCandles = [];
+    let price = basePrice;
+
+    for (let i = CANDLE_COUNT; i >= 1; i--) {
+      const candleTime = new Date(nowMs - i * CANDLE_MS);
+      const drift = (Math.random() - 0.5) * price * 0.006; // ±0.3% per candle
+      const open  = Number(price.toFixed(2));
+      const close = Number(Math.max(1, price + drift).toFixed(2));
+      const wick  = Math.random() * price * 0.002; // small wicks
+      const high  = Number((Math.max(open, close) + wick).toFixed(2));
+      const low   = Number((Math.min(open, close) - wick).toFixed(2));
+      const volume = Math.floor(Math.random() * 5000 + 500);
+      syntheticCandles.push({ date: candleTime, open, high, low, close, volume });
+      price = close; // next candle opens where this one closed
+    }
+
+    intradayCandles[stock.symbol] = syntheticCandles;
+
+    // ── Align memoryOHLC to the final synthetic price so live ticks continue seamlessly ──
     const initialData = {
-      _id: stock._id.toString(),
-      open: last.close,
-      high: last.close,
-      low: last.close,
-      close: last.close,
+      _id,
+      open:   Number(price.toFixed(2)),
+      high:   Number(price.toFixed(2)),
+      low:    Number(price.toFixed(2)),
+      close:  Number(price.toFixed(2)),
       volume: 0,
     };
 
-    // Always seed local memory as fallback
     memoryOHLC[stock.symbol] = { ...initialData };
 
     if (redisClient.status === 'ready') {
       try {
-        const exists = await redisClient.exists(`live_tick_memory:${stock.symbol}`);
-        if (!exists) {
-          await redisClient.hset(`live_tick_memory:${stock.symbol}`, initialData);
-        }
+        await redisClient.hset(`live_tick_memory:${stock.symbol}`, initialData);
       } catch (err) {
         console.warn(`[Simulator] Failed to init Redis memory for ${stock.symbol}`);
       }
     }
   }
+
 
   // Tick generator: Every 1 second, generate a tick for every stock
   setInterval(async () => {
@@ -92,8 +122,10 @@ const startLiveTicks = async () => {
         close = Number(close);
         volume = Number(volume);
 
-        const drift = (Math.random() - 0.5) * 5;
-        const newClose = close + drift;
+        // Proportional drift: ±0.1% of current price per tick
+        // Ensures candle bodies are visible at any price level
+        const drift = (Math.random() - 0.5) * close * 0.002;
+        const newClose = Math.max(1, close + drift);
 
         // Update in-memory candle constraints
         close = Number(newClose.toFixed(2));
@@ -128,6 +160,7 @@ const startLiveTicks = async () => {
   }, 1000);
 
   // Aggregation Persistence Loop: Every 5 seconds, write the accumulated candle to DB
+  // AND push to the in-memory intraday candle store (served to frontend)
   setInterval(async () => {
     try {
       const updatePromises = stocks.map(async (stock) => {
@@ -155,6 +188,13 @@ const startLiveTicks = async () => {
           close: Number(close),
           volume: Number(volume),
         };
+
+        // ── Push to in-memory intraday store (keeps last 200 candles per symbol) ──
+        if (!intradayCandles[symbol]) intradayCandles[symbol] = [];
+        intradayCandles[symbol].push(newOHLC);
+        if (intradayCandles[symbol].length > 200) {
+          intradayCandles[symbol] = intradayCandles[symbol].slice(-200);
+        }
 
         // Reset memory constraints for the next 5-second cycle
         const resetData = {
@@ -215,6 +255,18 @@ app.use("/api/position", positionsRoutes);
 app.use("/api/order", ordersRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/stocks", stockRoutes);
+
+// ── Live intraday OHLC: served from in-memory store (real 5-second candles) ──
+// Must be registered BEFORE the generic intradayRoutes to take precedence.
+app.get("/api/intraday/:symbol/intraday-ohlc", (req, res) => {
+  const { symbol } = req.params;
+  const candles = intradayCandles[symbol.toUpperCase()];
+  if (!candles || candles.length === 0) {
+    return res.json([]); // Return empty; frontend will wait for first tick
+  }
+  res.json(candles);
+});
+
 app.use("/api/intraday", intradayRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/alert", alertRoutes);

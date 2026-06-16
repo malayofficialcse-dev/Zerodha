@@ -647,11 +647,6 @@ const CandlestickCharts = () => {
     }).catch(err => console.error(err));
   }, [selected]);
 
-  // ── Reset candle timer when timeframe changes ──
-  useEffect(() => {
-    lastCandleTimeRef.current = null;
-  }, [tfIndex]);
-
   // ── Fetch OHLC data for compared stock ──
   useEffect(() => {
     if (!compareStock) {
@@ -665,55 +660,85 @@ const CandlestickCharts = () => {
     }).catch(err => console.error(err));
   }, [compareStock]);
 
-  // ── Sync chart with live ticks ──
-  const selectedTick = liveTick[selected];
+  // ── Live candle building via direct socket.io (one tick at a time) ──
+  // Using a raw socket — NOT the 5-second-batched useRealTimeTicks hook —
+  // so every tick immediately updates or appends a candle.
+  // The tfIndex ref is kept in a ref so the socket handler always reads
+  // the current timeframe without needing to re-subscribe.
+  const tfIndexRef = useRef(tfIndex);
+  useEffect(() => { tfIndexRef.current = tfIndex; }, [tfIndex]);
+
   useEffect(() => {
-    if (!selectedTick || ohlc.length === 0) return;
+    if (!selected) return;
+    let isMounted = true;
 
-    const candleDurationMs = TIMEFRAMES[tfIndex].durationMs;
-    const now = Date.now();
+    // Reset candle window whenever the stock or timeframe changes
+    lastCandleTimeRef.current = null;
 
-    setOhlc((prev) => {
-      if (prev.length === 0) return prev;
-      const lastIdx = prev.length - 1;
-      const lastCandle = prev[lastIdx];
-      const lastCandleTimestamp = new Date(lastCandle.date).getTime();
+    const socketURL = API_BASE_URL.replace("/api", "");
+    const socket = io(socketURL);
 
-      // Initialise the ref the first time
+    socket.on("tick", (tickData) => {
+      if (!isMounted) return;
+      if (tickData.symbol !== selected) return;
+
+      const candleDurationMs = TIMEFRAMES[tfIndexRef.current].durationMs;
+      const now = Date.now();
+
+      // ── Init ref outside the updater (avoids React double-invocation bug) ──
       if (lastCandleTimeRef.current === null) {
-        lastCandleTimeRef.current = lastCandleTimestamp;
+        lastCandleTimeRef.current = now;
       }
 
       const elapsed = now - lastCandleTimeRef.current;
+      const isNewCandle = elapsed >= candleDurationMs;
 
-      if (elapsed >= candleDurationMs) {
-        // ── New candle: period has elapsed ──
+      if (isNewCandle) {
         lastCandleTimeRef.current = now;
-        const newDate = new Date(now).toISOString();
-        const newCandle = {
-          date: newDate,
-          open:   selectedTick.price,
-          high:   selectedTick.price,
-          low:    selectedTick.price,
-          close:  selectedTick.price,
-          volume: selectedTick.volume || Math.floor(Math.random() * 5000 + 1000),
-        };
-        return [...prev, newCandle];
-      } else {
-        // ── Same candle: update OHLC in-place ──
-        const updatedCandle = {
-          ...lastCandle,
-          close: selectedTick.price,
-          high:  Math.max(lastCandle.high, selectedTick.price),
-          low:   Math.min(lastCandle.low,  selectedTick.price),
-          volume: selectedTick.volume,
-        };
-        const next = [...prev];
-        next[lastIdx] = updatedCandle;
-        return next;
       }
+
+      setOhlc((prev) => {
+        if (!prev || prev.length === 0) return prev;
+        const lastIdx = prev.length - 1;
+        const lastCandle = prev[lastIdx];
+
+        if (isNewCandle) {
+          // ── New candle: period has elapsed ──
+          const newCandle = {
+            date:   new Date(now).toISOString(),
+            open:   tickData.open  ?? tickData.close,
+            high:   tickData.high  ?? tickData.close,
+            low:    tickData.low   ?? tickData.close,
+            close:  tickData.close,
+            volume: tickData.volume || 0,
+          };
+          const updated = [...prev, newCandle];
+          return updated.length > 200 ? updated.slice(-200) : updated;
+        } else {
+          // ── Same candle: accumulate OHLC in-place ──
+          const updatedCandle = {
+            ...lastCandle,
+            close:  tickData.close,
+            high:   Math.max(lastCandle.high,  tickData.high  ?? tickData.close),
+            low:    Math.min(lastCandle.low,   tickData.low   ?? tickData.close),
+            volume: (lastCandle.volume || 0) + (tickData.volume || 0),
+          };
+          const next = [...prev];
+          next[lastIdx] = updatedCandle;
+          return next;
+        }
+      });
     });
-  }, [selectedTick, selected, tfIndex]);
+
+    return () => {
+      isMounted = false;
+      socket.disconnect();
+    };
+  // Re-connect when stock changes. tfIndex is read via tfIndexRef inside the handler.
+  }, [selected]);
+
+  // ── selectedTick is kept ONLY for the live price badge & heatmap ──
+  const selectedTick = liveTick[selected];
 
   // ── Build chart data scoped to selected timeframe ──
   const { chartData, volumeData, rsiData, macdData, indicators, patternMarkers, compareSeries } = useMemo(() => {
@@ -734,23 +759,20 @@ const CandlestickCharts = () => {
 
     const sliced = ohlc.slice(-TIMEFRAMES[tfIndex].candles);
 
-    // Calculate a static time shift to make the last data point always end at the current moment
-    const latestTimestamp = sliced.length > 0 ? new Date(sliced[sliced.length - 1].date).getTime() : 0;
-    const timeOffset = latestTimestamp > 0 ? Date.now() - latestTimestamp : 0;
-
-    const cd = sliced.map((d) => ({ x: new Date(d.date).getTime() + timeOffset, y: [d.open, d.high, d.low, d.close] }));
+    // Use real timestamps — no artificial offset so live candles align correctly
+    const cd = sliced.map((d) => ({ x: new Date(d.date).getTime(), y: [d.open, d.high, d.low, d.close] }));
     const vd = sliced.map((d) => ({
-      x: new Date(d.date).getTime() + timeOffset,
+      x: new Date(d.date).getTime(),
       y: d.volume || 0,
       fillColor: d.close >= d.open ? "#26a69a55" : "#ef535055",
     }));
 
-    const rd = sliced.map((d) => ({ x: new Date(d.date).getTime() + timeOffset, y: d.rsi || null }));
+    const rd = sliced.map((d) => ({ x: new Date(d.date).getTime(), y: d.rsi || null }));
     const md = {
-      macd: sliced.map((d) => ({ x: new Date(d.date).getTime() + timeOffset, y: d.macd || null })),
-      signal: sliced.map((d) => ({ x: new Date(d.date).getTime() + timeOffset, y: d.signal || null })),
+      macd: sliced.map((d) => ({ x: new Date(d.date).getTime(), y: d.macd || null })),
+      signal: sliced.map((d) => ({ x: new Date(d.date).getTime(), y: d.signal || null })),
       histogram: sliced.map((d) => ({
-        x: new Date(d.date).getTime() + timeOffset,
+        x: new Date(d.date).getTime(),
         y: d.histogram || 0,
         color: (d.histogram || 0) >= 0 ? "#26a69a" : "#ef5350"
       }))
@@ -766,7 +788,7 @@ const CandlestickCharts = () => {
     if (showEMA20) {
       const e = EMA.calculate({ period: 20, values: closePrices });
       const diff = sliced.length - e.length;
-      ema20 = e.map((val, i) => ({ x: new Date(sliced[i + diff].date).getTime() + timeOffset, y: val }));
+      ema20 = e.map((val, i) => ({ x: new Date(sliced[i + diff].date).getTime(), y: val }));
     }
 
     // Bollinger Bands
@@ -775,7 +797,7 @@ const CandlestickCharts = () => {
       const b = BollingerBands.calculate({ period: 20, stdDev: 2, values: closePrices });
       const diff = sliced.length - b.length;
       b.forEach((val, i) => {
-        const time = new Date(sliced[i + diff].date).getTime() + timeOffset;
+        const time = new Date(sliced[i + diff].date).getTime();
         bb.upper.push({ x: time, y: val.upper });
         bb.middle.push({ x: time, y: val.middle });
         bb.lower.push({ x: time, y: val.lower });
@@ -787,7 +809,7 @@ const CandlestickCharts = () => {
     if (showVWAP) {
       const v = VWAP.calculate({ high: highPrices, low: lowPrices, close: closePrices, volume: volumes });
       const diff = sliced.length - v.length;
-      vwap = v.map((val, i) => ({ x: new Date(sliced[i + diff].date).getTime() + timeOffset, y: val }));
+      vwap = v.map((val, i) => ({ x: new Date(sliced[i + diff].date).getTime(), y: val }));
     }
 
     // ATR
@@ -795,7 +817,7 @@ const CandlestickCharts = () => {
     if (showATR) {
       const a = ATR.calculate({ high: highPrices, low: lowPrices, close: closePrices, period: 14 });
       const diff = sliced.length - a.length;
-      atr = a.map((val, i) => ({ x: new Date(sliced[i + diff].date).getTime() + timeOffset, y: val }));
+      atr = a.map((val, i) => ({ x: new Date(sliced[i + diff].date).getTime(), y: val }));
     }
 
     // Pattern Recognition
@@ -821,12 +843,11 @@ const CandlestickCharts = () => {
       const compSliced = compareData.slice(-limit);
       const compBaseClose = compSliced[0]?.close || 1;
       
-      compareSeries = compSliced.map((d, i) => {
+      compareSeries = compSliced.map((d) => {
          // Scale the comparison stock to the base stock's price range for visualization purposes
-         // (since both are plotted on the same Y-axis scale)
          const pctChange = (d.close - compBaseClose) / compBaseClose;
          const scaledValue = baseClose * (1 + pctChange);
-         return { x: new Date(d.date).getTime() + timeOffset, y: scaledValue };
+         return { x: new Date(d.date).getTime(), y: scaledValue };
       });
     }
 

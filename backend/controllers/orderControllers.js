@@ -135,6 +135,7 @@
 
 import OrdersModel from "../models/ordersModel.js";
 import HoldingModel from "../models/holdingsModel.js";
+import PositionsModel from "../models/positionsModel.js";
 import mongoose from "mongoose";
 import redisClient from "../services/redisClient.js";
 
@@ -270,12 +271,47 @@ export const createNewOrder = async (req, res) => {
         }
       }
     }
+
+    // --- Synchronize with user Positions ---
+    let position = await PositionsModel.findOne({ name });
+
+    if (mode === "BUY") {
+      if (position) {
+        const totalCostBefore = position.qty * position.avg;
+        const newCost = qty * price;
+        const totalQty = position.qty + qty;
+        position.avg = (totalCostBefore + newCost) / totalQty;
+        position.qty = totalQty;
+        await position.save();
+      } else {
+        await PositionsModel.create({
+          product: "MIS",
+          name,
+          qty,
+          avg: price,
+          price,
+          net: "0.00%",
+          day: "0.00%",
+          isLoss: false,
+        });
+      }
+    } else if (mode === "SELL") {
+      if (position) {
+        position.qty -= qty;
+        if (position.qty <= 0) {
+          await PositionsModel.deleteOne({ _id: position._id });
+        } else {
+          await position.save();
+        }
+      }
+    }
     
     // -> INVALIDATE CACHES <-
     if (redisClient.status === "ready") {
       try {
         await redisClient.del(`user:${userId}:orders`);
         await redisClient.del(`user:${userId}:holdings`);
+        await redisClient.del(`positions:all`);
       } catch (cacheErr) {
         console.error("Failed to invalidate cache after order:", cacheErr);
       }
