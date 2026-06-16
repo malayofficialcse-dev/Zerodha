@@ -12,14 +12,10 @@ import Positions from "./Positions";
 import WatchList from "./WatchList";
 import Charts from "./Charts";
 import Intraday from "./Intraday";
-import CorrelationMatrix from "./CorrelationMatrix";
 import Alerts from "./Alerts";
 import UserProfile from "./UserProfile";
-import RiskAnalytics from "./RiskAnalytics";
-import Rebalancing from "./Rebalancing";
 
 import DashboardChart from "./DashboardChart";
-import MarketHeatmap from "./MarketHeatmap";
 import QuickTradeOverlay from "./QuickTradeOverlay";
 import GeneralContext from "./GeneralContext";
 import { ChevronLeft, ChevronRight } from "@mui/icons-material";
@@ -64,13 +60,10 @@ const Dashboard = () => {
           <Route path="/positions" element={<Positions />} />
           <Route path="/intraday" element={<Intraday />} />
           <Route path="/charts" element={<Charts />} />
-          <Route path="/correlation" element={<CorrelationMatrix />} />
           <Route path="/alerts" element={<Alerts />} />
           <Route path="/profile" element={<UserProfile />} />
           <Route path="/dashboard" element={<DashboardChart />} />
-          <Route path="/heatmap" element={<MarketHeatmap />} />
-          <Route path="/analytics" element={<RiskAnalytics />} />
-          <Route path="/rebalance" element={<Rebalancing />} />
+
         </Routes>
       </div>
       <QuickTradeOverlay />
@@ -80,8 +73,8 @@ const Dashboard = () => {
 };
 
 const SidebarToggle = ({ isOpen, toggle }) => (
-  <button 
-    className="sidebar-toggle-btn" 
+  <button
+    className="sidebar-toggle-btn"
     onClick={toggle}
     title={isOpen ? "Collapse Sidebar" : "Expand Sidebar"}
   >

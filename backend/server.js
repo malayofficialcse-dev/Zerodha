@@ -17,9 +17,7 @@ import userRoutes from "./routes/userRoutes.js";
 import stockRoutes from "./routes/stockRoutes.js";
 import intradayRoutes from "./routes/intradayRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
-import correlationRoutes from "./routes/correlationRoutes.js";
 import alertRoutes from "./routes/alertRoutes.js";
-import analyticsRoutes from "./routes/analyticsRoutes.js";
 import { loadActiveAlerts } from "./services/alertEngine.js";
 import { initRabbitMQ } from "./services/rabbitMQClient.js";
 import { startNotificationWorker } from "./workers/notificationWorker.js";
@@ -27,7 +25,7 @@ import { startNotificationWorker } from "./workers/notificationWorker.js";
 
 
 import { seedStocks } from "./Data/seedStocks.js";
-import StockModel from "./models/stockModel.js"; 
+import StockModel from "./models/stockModel.js";
 import redisClient from "./services/redisClient.js";
 
 dotenv.config();
@@ -41,7 +39,7 @@ const memoryOHLC = {};
 // Background Simulator: Generates instant ticks multiple times a second
 const startLiveTicks = async () => {
   const stocks = await mongoose.model("Stock").find({});
-  
+
   // Initialize memory map in Redis or local fallback
   for (const stock of stocks) {
     const last = stock.ohlc[stock.ohlc.length - 1] || { close: stock.currentPrice };
@@ -79,7 +77,7 @@ const startLiveTicks = async () => {
         if (redisClient.status === 'ready') {
           currentData = await redisClient.hgetall(`live_tick_memory:${symbol}`);
         }
-        
+
         // Fallback to local memory if Redis data is missing or Redis is down
         if (!currentData || !currentData.close) {
           currentData = memoryOHLC[symbol];
@@ -94,9 +92,9 @@ const startLiveTicks = async () => {
         close = Number(close);
         volume = Number(volume);
 
-        const drift = (Math.random() - 0.5) * 5; 
+        const drift = (Math.random() - 0.5) * 5;
         const newClose = close + drift;
-        
+
         // Update in-memory candle constraints
         close = Number(newClose.toFixed(2));
         if (newClose > high) high = Number(newClose.toFixed(2));
@@ -127,7 +125,7 @@ const startLiveTicks = async () => {
     } catch (err) {
       console.error("[Simulator] Tick Generation error:", err.message);
     }
-  }, 1000); 
+  }, 1000);
 
   // Aggregation Persistence Loop: Every 5 seconds, write the accumulated candle to DB
   setInterval(async () => {
@@ -219,9 +217,7 @@ app.use("/api/user", userRoutes);
 app.use("/api/stocks", stockRoutes);
 app.use("/api/intraday", intradayRoutes);
 app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/correlation", correlationRoutes);
 app.use("/api/alert", alertRoutes);
-app.use("/api/analytics", analyticsRoutes);
 
 // Prometheus Metrics Definitions
 const collectDefaultMetrics = client.collectDefaultMetrics;
@@ -229,59 +225,59 @@ collectDefaultMetrics({ register: client.register });
 
 // Custom Business Metrics
 const orderCounter = new client.Counter({
-    name: 'zerodha_orders_total',
-    help: 'Total number of orders placed via the API',
-    labelNames: ['type', 'symbol']
+  name: 'zerodha_orders_total',
+  help: 'Total number of orders placed via the API',
+  labelNames: ['type', 'symbol']
 });
 
 const requestDuration = new client.Histogram({
-    name: 'http_request_duration_seconds',
-    help: 'Duration of HTTP requests in seconds',
-    labelNames: ['method', 'route', 'status_code'],
-    buckets: [0.1, 0.5, 1, 2, 5]
+  name: 'http_request_duration_seconds',
+  help: 'Duration of HTTP requests in seconds',
+  labelNames: ['method', 'route', 'status_code'],
+  buckets: [0.1, 0.5, 1, 2, 5]
 });
 
 // Middleware to track request duration
 app.use((req, res, next) => {
-    const start = Date.now();
-    res.on('finish', () => {
-        const duration = (Date.now() - start) / 1000;
-        const route = req.route ? req.route.path : req.path;
-        requestDuration.labels(req.method, route, res.statusCode).observe(duration);
-    });
-    next();
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = (Date.now() - start) / 1000;
+    const route = req.route ? req.route.path : req.path;
+    requestDuration.labels(req.method, route, res.statusCode).observe(duration);
+  });
+  next();
 });
 
 // Wrap order routes to increment metrics
 app.use("/api/order", (req, res, next) => {
-    if (req.method === 'POST') {
-        orderCounter.labels('market', req.body.symbol || 'unknown').inc();
-    }
-    next();
+  if (req.method === 'POST') {
+    orderCounter.labels('market', req.body.symbol || 'unknown').inc();
+  }
+  next();
 }, ordersRoutes);
 
 app.get('/metrics', async (req, res) => {
-    try {
-        res.set('Content-Type', client.register.contentType);
-        res.end(await client.register.metrics());
-    } catch (ex) {
-        res.status(500).end(ex);
-    }
+  try {
+    res.set('Content-Type', client.register.contentType);
+    res.end(await client.register.metrics());
+  } catch (ex) {
+    res.status(500).end(ex);
+  }
 });
 
 
 // Connect to DB, load Kafka, then start server
 connectDB().then(async () => {
-  await seedStocks(); 
+  await seedStocks();
   await initKafkaProducer();
   await initStreamingServer(httpServer);
   await loadActiveAlerts(); // Load alerts into memory
-  
+
   await initRabbitMQ();
   startNotificationWorker();
 
-  await startLiveTicks(); 
-  
+  await startLiveTicks();
+
   httpServer.listen(process.env.PORT || 3005, () => {
     console.log("HTTP & WebSocket Server started on port", process.env.PORT || 3005);
   });

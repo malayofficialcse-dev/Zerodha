@@ -13,7 +13,7 @@ const Menu = () => {
       <div className="logo-section">
         <img src="kite.webp" alt="Kite Logo" className="logo" style={{ width: "24px" }} />
       </div>
-      
+
       <div className="menus">
         <ul>
           <li>
@@ -46,7 +46,7 @@ const Menu = () => {
               <span className={selectedMenu === 6 ? "menu selected" : "menu"}>Charts</span>
             </Link>
           </li>
-          <li>
+          {/* <li>
             <Link className="link" to="/heatmap" onClick={() => handleMenuClick(9)}>
               <span className={selectedMenu === 9 ? "menu selected" : "menu"}>Heatmap</span>
             </Link>
@@ -70,7 +70,7 @@ const Menu = () => {
             <Link className="link" to="/rebalance" onClick={() => handleMenuClick(11)}>
               <span className={selectedMenu === 11 ? "menu selected" : "menu"}>Rebalance</span>
             </Link>
-          </li>
+          </li> */}
         </ul>
       </div>
 
