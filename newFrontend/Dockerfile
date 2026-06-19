@@ -8,9 +8,6 @@ RUN npm install
 
 COPY . .
 
-# Pass build-time environment variable
-ARG REACT_APP_API_BASE_URL
-ENV REACT_APP_API_BASE_URL=$REACT_APP_API_BASE_URL
 ENV GENERATE_SOURCEMAP=false
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 

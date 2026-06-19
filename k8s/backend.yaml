@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: your-docker-hub-user/zerodha-backend:latest
+        image: zerodhaacr1234.azurecr.io/zerodha-backend:v1
         ports:
         - containerPort: 3005
         env:

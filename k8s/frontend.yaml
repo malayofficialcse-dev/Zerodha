@@ -1,32 +1,32 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dashboard
+  name: frontend
   namespace: zerodha
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: dashboard
+      app: frontend
   template:
     metadata:
       labels:
-        app: dashboard
+        app: frontend
     spec:
       containers:
-      - name: dashboard
-        image: zerodhaacr1234.azurecr.io/zerodha-dashboard:v1
+      - name: frontend
+        image: zerodhaacr1234.azurecr.io/zerodha-frontend:v1
         ports:
         - containerPort: 80
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: dashboard-service
+  name: frontend-service
   namespace: zerodha
 spec:
   selector:
-    app: dashboard
+    app: frontend
   ports:
   - protocol: TCP
     port: 80
