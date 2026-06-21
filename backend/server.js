@@ -31,6 +31,27 @@ import redisClient from "./services/redisClient.js";
 
 dotenv.config();
 
+const PORT = process.env.PORT || 3005;
+
+// ── Startup Banner ───────────────────────────────────────────────────────────
+const _mongoUri  = (process.env.MONGO_URI    || "mongodb://localhost:27017").replace(/:([^:@]{1,})+@/, ":***@");
+const _rabbitUri = (process.env.RABBITMQ_URL || "amqp://guest:guest@localhost:5672").replace(/:[^:@]+@/, ":***@");
+const _redis     = `${process.env.REDIS_HOST || "localhost"}:${process.env.REDIS_PORT || 6379}`;
+const _kafka     = process.env.KAFKA_BROKERS || "localhost:9092";
+
+console.log("╔══════════════════════════════════════════════════════════════╗");
+console.log("║          🚀 ZERODHA CLONE BACKEND — STARTING UP             ║");
+console.log("╚══════════════════════════════════════════════════════════════╝");
+console.log("[Server] Node.js " + process.version);
+console.log("[Server] PORT:         " + PORT);
+console.log("[Server] ENV:          " + (process.env.NODE_ENV || "development"));
+console.log("[Server] MongoDB URI:  " + _mongoUri);
+console.log("[Server] Redis:        " + _redis);
+console.log("[Server] Kafka:        " + _kafka);
+console.log("[Server] RabbitMQ:     " + _rabbitUri);
+console.log("[Server] Zookeeper:    Managed by Kafka. Ensure Zookeeper is up on port 2181 when using Kafka.");
+console.log("──────────────────────────────────────────────────────────────────");
+
 const app = express();
 const httpServer = http.createServer(app);
 
@@ -322,17 +343,35 @@ app.get('/metrics', async (req, res) => {
 
 // Connect to DB, load Kafka, then start server
 connectDB().then(async () => {
-  await seedStocks();
-  await initKafkaProducer();
-  await initStreamingServer(httpServer);
-  await loadActiveAlerts(); // Load alerts into memory
+  console.log("[Server] ✅ MongoDB connected. Initializing services...");
 
+  console.log("[Server] Seeding stock data...");
+  await seedStocks();
+  console.log("[Server] ✅ Stock seed complete.");
+
+  console.log("[Server] Initializing Kafka Producer (requires Zookeeper + Kafka on port 9092)...");
+  await initKafkaProducer();
+
+  console.log("[Server] Initializing WebSocket Streaming Server + Kafka Consumer...");
+  await initStreamingServer(httpServer);
+
+  console.log("[Server] Loading active price alerts into memory...");
+  await loadActiveAlerts();
+
+  console.log("[Server] Initializing RabbitMQ (requires RabbitMQ on port 5672)...");
   await initRabbitMQ();
+
+  console.log("[Server] Starting Notification Worker (RabbitMQ consumer)...");
   startNotificationWorker();
 
+  console.log("[Server] Starting live tick simulator...");
   await startLiveTicks();
 
-  httpServer.listen(process.env.PORT || 3005, () => {
-    console.log("HTTP & WebSocket Server started on port", process.env.PORT || 3005);
+  httpServer.listen(PORT, () => {
+    console.log("──────────────────────────────────────────────────────────────────");
+    console.log(`✅ [Server] HTTP & WebSocket Server listening on port ${PORT}`);
+    console.log(`✅ [Server] API Base: http://localhost:${PORT}/api`);
+    console.log(`✅ [Server] Metrics: http://localhost:${PORT}/metrics`);
+    console.log("──────────────────────────────────────────────────────────────────");
   });
 });

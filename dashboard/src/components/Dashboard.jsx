@@ -30,34 +30,57 @@ const Dashboard = () => {
     const socketURL = API_BASE_URL.replace("/api", "");
     const socket = io(socketURL);
 
+    const saveNotification = (newNotif) => {
+      try {
+        const existing = JSON.parse(localStorage.getItem("notifications") || "[]");
+        existing.unshift(newNotif);
+        localStorage.setItem("notifications", JSON.stringify(existing.slice(0, 50)));
+        window.dispatchEvent(new Event("new-notification"));
+      } catch (err) {
+        console.error("Error saving notification:", err);
+      }
+    };
+
     socket.on("price-alert", (alert) => {
-      toast.info(
-        `🔔 Alert: ${alert.symbol} hit ₹${alert.currentPrice.toFixed(2)} (${alert.condition} ₹${alert.targetPrice})`,
-        {
-          position: "top-right",
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          theme: "colored",
-        }
-      );
+      const msg = `🔔 Alert: ${alert.symbol} hit ₹${alert.currentPrice.toFixed(2)} (${alert.condition} ₹${alert.targetPrice})`;
+      toast.info(msg, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        theme: "colored",
+      });
+
+      saveNotification({
+        id: Math.random().toString(),
+        type: "price-alert",
+        text: msg,
+        timestamp: new Date().toISOString(),
+        read: false
+      });
     });
 
     socket.on("position-alert", (alert) => {
-      toast.error(
-        `🚨 STOP-LOSS / TARGET HIT: Intraday ${alert.symbol} position closed at ₹${alert.triggerPrice.toFixed(2)} (${alert.limitType} of ₹${alert.limitValue.toFixed(2)} reached). P&L: ₹${alert.pnl.toFixed(2)}`,
-        {
-          position: "top-right",
-          autoClose: 10000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          theme: "colored",
-        }
-      );
+      const msg = `🚨 STOP-LOSS / TARGET HIT: Intraday ${alert.symbol} position closed at ₹${alert.triggerPrice.toFixed(2)} (${alert.limitType} of ₹${alert.limitValue.toFixed(2)} reached). P&L: ₹${alert.pnl.toFixed(2)}`;
+      toast.error(msg, {
+        position: "top-right",
+        autoClose: 10000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        theme: "colored",
+      });
+
+      saveNotification({
+        id: Math.random().toString(),
+        type: "position-alert",
+        text: msg,
+        timestamp: new Date().toISOString(),
+        read: false
+      });
     });
 
     return () => socket.disconnect();

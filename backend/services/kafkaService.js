@@ -1,19 +1,31 @@
 import { Kafka } from "kafkajs";
 
+const KAFKA_BROKERS = process.env.KAFKA_BROKERS || "localhost:9092";
+
+console.log(`[Kafka] Initializing client. Brokers: ${KAFKA_BROKERS}`);
+
 // Configure Kafka client
 const kafka = new Kafka({
   clientId: "zerodha-clone-backend",
-  brokers: [process.env.KAFKA_BROKERS || "localhost:9092"],
+  brokers: [KAFKA_BROKERS],
+  logCreator: () => (entry) => {
+    const { namespace, level, label, log } = entry;
+    const { message, ...extra } = log;
+    const levelMap = { 0: "ERROR", 1: "WARN", 2: "INFO", 4: "DEBUG" };
+    const lvl = levelMap[level] || "LOG";
+    if (level <= 2) {
+      console.log(`[Kafka][${lvl}][${namespace}] ${message}`, Object.keys(extra).length ? extra : "");
+    }
+  },
 });
 
-export const producer = kafka.producer({
-  retry: { retries: 5 }
-});
+export const producer = kafka.producer({ retry: { retries: 5 } });
 export const consumer = kafka.consumer({ groupId: "realtime-chart-group" });
 const admin = kafka.admin();
 
 let isProducerConnected = false;
 let isConsumerConnected = false;
+let publishCount = 0;
 
 /**
  * Ensure the stock-ticks topic exists in Kafka.
@@ -21,19 +33,25 @@ let isConsumerConnected = false;
  */
 const ensureTopic = async () => {
   try {
+    console.log("[Kafka][Admin] Connecting admin client to check topics...");
     await admin.connect();
     const topics = await admin.listTopics();
+    console.log(`[Kafka][Admin] Existing topics: [${topics.join(", ")}]`);
+
     if (!topics.includes("stock-ticks")) {
+      console.log("[Kafka][Admin] Topic 'stock-ticks' not found. Creating...");
       await admin.createTopics({
         topics: [{ topic: "stock-ticks", numPartitions: 1, replicationFactor: 1 }],
       });
-      console.log("✅ Kafka topic 'stock-ticks' created.");
+      console.log("✅ [Kafka][Admin] Topic 'stock-ticks' created successfully.");
     } else {
-      console.log("ℹ️ Kafka topic 'stock-ticks' already exists.");
+      console.log("ℹ️  [Kafka][Admin] Topic 'stock-ticks' already exists. Skipping creation.");
     }
     await admin.disconnect();
+    console.log("[Kafka][Admin] Admin client disconnected.");
   } catch (err) {
-    console.warn("⚠️ Kafka admin topic check failed:", err.message);
+    console.warn("⚠️  [Kafka][Admin] Topic check/creation failed:", err.message);
+    console.warn("[Kafka][Admin] Is Kafka / Zookeeper running on", KAFKA_BROKERS, "?");
   }
 };
 
@@ -42,13 +60,16 @@ const ensureTopic = async () => {
  */
 export const initKafkaProducer = async () => {
   try {
-    // Ensure topic exists before connecting producer
+    console.log("[Kafka][Producer] Ensuring topic exists before connecting producer...");
     await ensureTopic();
+
+    console.log("[Kafka][Producer] Connecting producer...");
     await producer.connect();
     isProducerConnected = true;
-    console.log("✅ Kafka Producer connected successfully.");
+    console.log("✅ [Kafka][Producer] Connected successfully. Ready to publish ticks.");
   } catch (err) {
-    console.warn("⚠️ Kafka Producer connection failed. Will fallback to direct Socket.io emit.", err.message);
+    console.warn("⚠️  [Kafka][Producer] Connection FAILED:", err.message);
+    console.warn("[Kafka][Producer] 👉 Fallback mode: ticks will be emitted directly via Socket.io (no Kafka).");
     isProducerConnected = false;
   }
 };
@@ -62,27 +83,35 @@ import { checkAlerts, checkIntradayAlerts } from "./alertEngine.js";
  */
 export const initKafkaConsumer = async (onMessageCallback) => {
   try {
+    console.log("[Kafka][Consumer] Connecting consumer (groupId: realtime-chart-group)...");
     await consumer.connect();
     isConsumerConnected = true;
-    console.log("✅ Kafka Consumer connected successfully.");
+    console.log("✅ [Kafka][Consumer] Connected successfully.");
 
+    console.log("[Kafka][Consumer] Subscribing to topic 'stock-ticks' (fromBeginning: false)...");
     await consumer.subscribe({ topic: "stock-ticks", fromBeginning: false });
+    console.log("✅ [Kafka][Consumer] Subscribed to 'stock-ticks'.");
 
+    let msgCount = 0;
     await consumer.run({
       eachMessage: async ({ topic, partition, message }) => {
         try {
           const tickData = JSON.parse(message.value.toString());
+          msgCount++;
+          if (msgCount % 100 === 0) {
+            console.log(`[Kafka][Consumer] Processed ${msgCount} messages. Latest: ${tickData.symbol} @ ₹${tickData.close}`);
+          }
           // Forward from Kafka → Socket.io → Frontend
           onMessageCallback(tickData);
         } catch (err) {
-          console.error("[Kafka Consumer] Error processing message:", err.message);
+          console.error("[Kafka][Consumer] Error processing message:", err.message);
         }
       },
     });
-    console.log("✅ Kafka Consumer is now listening on 'stock-ticks' topic.");
+    console.log("✅ [Kafka][Consumer] Listening on 'stock-ticks' topic. Pipeline: Kafka → Socket.io → Frontend");
   } catch (err) {
-    console.warn("⚠️ Kafka Consumer initialization failed:", err.message);
-    console.warn("⚠️ Falling back: ticks will be emitted directly via Socket.io.");
+    console.warn("⚠️  [Kafka][Consumer] Initialization FAILED:", err.message);
+    console.warn("⚠️  [Kafka][Consumer] 👉 Fallback mode active: ticks go directly Socket.io → Frontend (bypassing Kafka).");
     isConsumerConnected = false;
     // Mark producer as disconnected too so publishTick falls back to direct emit
     isProducerConnected = false;
@@ -121,8 +150,12 @@ export const publishTick = async (tickData) => {
       topic: "stock-ticks",
       messages: [{ value: JSON.stringify(tickData) }],
     });
+    publishCount++;
+    if (publishCount % 500 === 0) {
+      console.log(`[Kafka][Producer] Published ${publishCount} tick messages to 'stock-ticks' topic.`);
+    }
   } catch (err) {
-    console.error("[Kafka] Publish error:", err.message);
+    console.error("[Kafka][Producer] Publish error:", err.message);
     // On publish failure, fallback to direct emit for this tick
     const io = getIO();
     if (io) {
