@@ -1,17 +1,53 @@
-variable "aws_region" {
-  description = "The AWS region to deploy into"
+variable "resource_group_name" {
   type        = string
-  default     = "ap-south-1" # Mumbai region
+  description = "The name of the Azure Resource Group."
+  default     = "zerodha-rg"
 }
 
-variable "instance_type" {
-  description = "EC2 Instance Type (Needs at least 2GB RAM for Kafka/Redis/Node)"
+variable "location" {
   type        = string
-  default     = "t3.medium"
+  description = "The Azure region where resources will be provisioned."
+  default     = "East US"
 }
 
-variable "key_name" {
-  description = "Name of the existing AWS Key Pair to allow SSH access. You must create this in AWS first."
+variable "acr_name" {
   type        = string
-  default     = "zerodha-key" 
+  description = "The name of the Azure Container Registry (must be globally unique, alphanumeric only)."
+  default     = "zerodhaacr1234"
+}
+
+variable "aks_cluster_name" {
+  type        = string
+  description = "The name of the AKS (Azure Kubernetes Service) cluster."
+  default     = "zerodha-aks-cluster"
+}
+
+variable "dns_prefix" {
+  type        = string
+  description = "DNS prefix for the AKS cluster."
+  default     = "zerodhaaks"
+}
+
+variable "node_count" {
+  type        = number
+  description = "The number of worker nodes to provision in the AKS system node pool."
+  default     = 2
+}
+
+variable "node_vm_size" {
+  type        = string
+  description = "The size of the Virtual Machines for the AKS nodes."
+  default     = "Standard_D2s_v5"
+}
+
+variable "vnet_address_space" {
+  type        = list(string)
+  description = "The address space for the Virtual Network."
+  default     = ["10.240.0.0/16"]
+}
+
+variable "subnet_address_prefix" {
+  type        = list(string)
+  description = "The address prefix for the AKS subnet."
+  default     = ["10.240.0.0/22"]
 }

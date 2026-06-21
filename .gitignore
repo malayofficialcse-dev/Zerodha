@@ -1,0 +1,13 @@
+# Terraform ignore rules
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+*.tfvars.json
+.terraform.tfstate.lock.info
+
+# System/IDE files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
