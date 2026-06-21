@@ -63,7 +63,7 @@ export const approveKYC = async (req, res) => {
     }
 
     user.kycStatus = "approved";
-    user.cashBalance = 1000; // Credited ₹1000 upon KYC approval
+    user.cashBalance = 1000000; // Credited ₹1,000,000 upon KYC approval
     await user.save();
 
     // Invalidate user cache

@@ -54,7 +54,7 @@ export const initKafkaProducer = async () => {
 };
 
 import { getIO } from "../websockets/streamingServer.js";
-import { checkAlerts } from "./alertEngine.js";
+import { checkAlerts, checkIntradayAlerts } from "./alertEngine.js";
 
 /**
  * Initialize Kafka Consumer and subscribe to stock ticks.
@@ -108,6 +108,9 @@ export const publishTick = async (tickData) => {
           currentPrice,
         });
       });
+
+      // Check intraday stop-loss / target in fallback mode
+      checkIntradayAlerts(tickData);
     }
     return;
   }
@@ -127,6 +130,7 @@ export const publishTick = async (tickData) => {
       checkAlerts(tickData, (alert, currentPrice) => {
         io.emit("price-alert", { ...alert._doc, currentPrice });
       });
+      checkIntradayAlerts(tickData);
     }
   }
 };

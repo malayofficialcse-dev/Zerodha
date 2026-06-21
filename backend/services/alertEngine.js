@@ -131,8 +131,18 @@ export const checkIntradayAlerts = async (tick) => {
           pnl: trade.profitOrLoss,
           timestamp: new Date().toISOString()
         };
-        await publishNotification(alertMsg);
-        console.log(`[AlertEngine] Intraday SL/Target hit: ${trade.symbol} at ₹${tick.close}. Published to RabbitMQ.`);
+        const published = await publishNotification(alertMsg);
+        if (published) {
+          console.log(`[AlertEngine] Intraday SL/Target hit: ${trade.symbol} at ₹${tick.close}. Published to RabbitMQ.`);
+        } else {
+          // Fallback: emit directly to socket clients
+          const { getIO } = await import("../websockets/streamingServer.js");
+          const io = getIO();
+          if (io) {
+            console.log(`[AlertEngine] RabbitMQ down. Emitting position-alert directly for user ${trade.user}: ${trade.symbol}`);
+            io.emit("position-alert", alertMsg);
+          }
+        }
       }
     }
   } catch (err) {

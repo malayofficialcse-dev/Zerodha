@@ -68,8 +68,9 @@ const BuySellPopup = ({ type, onClose, trade, symbol }) => {
         setMessage("✓ Sell order placed successfully!");
         setMessageType("success");
       }
-    } catch {
-      setMessage("✗ Error placing order. Please try again.");
+    } catch (err) {
+      const errMsg = err.response?.data?.error || err.response?.data?.message || "Error placing order. Please try again.";
+      setMessage(`✗ ${errMsg}`);
       setMessageType("error");
     }
   };
