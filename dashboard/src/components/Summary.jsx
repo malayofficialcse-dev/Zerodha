@@ -148,7 +148,7 @@ const Summary = () => {
       let totalValue = 0, totalInvested = 0, todayPnl = 0;
 
       const holdingRows = holdings.map((h) => {
-        const stock = stocks.find((s) => s.name === h.name || s.symbol === h.symbol);
+        const stock = stocks.find((s) => s.name === h.name || s.symbol === h.name || s.symbol === h.symbol);
         const livePrice = ticks[stock?.symbol]?.close ?? stock?.currentPrice ?? h.price;
         const invested = h.price * h.qty;
         const current = livePrice * h.qty;

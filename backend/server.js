@@ -6,7 +6,7 @@ import bodyParser from "body-parser";
 import dotenv from "dotenv";
 import client from "prom-client";
 
-import { initKafkaProducer, publishTick } from "./services/kafkaService.js";
+import { initKafkaProducer, publishTick, batchPublishTicks } from "./services/kafkaService.js";
 import { initStreamingServer } from "./websockets/streamingServer.js";
 
 import connectDB from "./DB/connect.js";
@@ -19,6 +19,7 @@ import intradayRoutes from "./routes/intradayRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import alertRoutes from "./routes/alertRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import analyticsRoutes from "./routes/analyticsRoutes.js";
 import { loadActiveAlerts } from "./services/alertEngine.js";
 import { initRabbitMQ } from "./services/rabbitMQClient.js";
 import { startNotificationWorker } from "./workers/notificationWorker.js";
@@ -119,9 +120,13 @@ const startLiveTicks = async () => {
   }
 
 
-  // Tick generator: Every 1 second, generate a tick for every stock
-  setInterval(async () => {
+  // Tick generator: Every 1 second, generate a tick for ALL stocks and publish them
+  // as a SINGLE batched Kafka request (avoids N concurrent producer.send() calls).
+  // Uses self-scheduling setTimeout so a slow iteration never overlaps the next.
+  const runTickInterval = async () => {
     try {
+      const tickBatch = [];
+
       for (const stock of stocks) {
         const symbol = stock.symbol;
         let currentData = null;
@@ -165,21 +170,24 @@ const startLiveTicks = async () => {
           });
         }
 
-        // Publish tick instantly (Kafka service handles its own fallback to Socket.io)
-        publishTick({
-          symbol,
-          date: new Date(),
-          open,
-          high,
-          low,
-          close,
-          volume
-        });
+        // Collect tick for batch publish
+        tickBatch.push({ symbol, date: new Date(), open, high, low, close, volume });
+      }
+
+      // Publish ALL ticks in a single Kafka request (1 network round-trip instead of N)
+      if (tickBatch.length > 0) {
+        await batchPublishTicks(tickBatch);
       }
     } catch (err) {
       console.error("[Simulator] Tick Generation error:", err.message);
+    } finally {
+      // Schedule next run only after this one finishes (prevents backlog under slow Kafka)
+      setTimeout(runTickInterval, 1000);
     }
-  }, 1000);
+  };
+
+  // Kick off the first tick
+  setTimeout(runTickInterval, 1000);
 
   // Aggregation Persistence Loop: Every 5 seconds, write the accumulated candle to DB
   // AND push to the in-memory intraday candle store (served to frontend)
@@ -273,11 +281,13 @@ app.use(
 app.use(bodyParser.json());
 
 app.use("/api/holding", holdingRoutes);
+app.use("/api/holdings", holdingRoutes);
 app.use("/api/position", positionsRoutes);
 app.use("/api/order", ordersRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/stocks", stockRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 // ── Live intraday OHLC: served from in-memory store (real 5-second candles) ──
 // Must be registered BEFORE the generic intradayRoutes to take precedence.

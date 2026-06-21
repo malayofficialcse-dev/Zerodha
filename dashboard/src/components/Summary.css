@@ -35,7 +35,7 @@
   background: rgba(34, 197, 94, 0.1);
   color: #22c55e;
   padding: 6px 12px;
-  border-radius: 20px;
+  border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 700;
   border: 1px solid rgba(34, 197, 94, 0.2);
@@ -68,7 +68,7 @@
   background: var(--surface-bg, #fff);
   border: 1px solid var(--border-color, #e2e8f0);
   padding: 20px;
-  border-radius: 16px;
+  border-radius: 4px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   transition: transform 0.2s, box-shadow 0.2s;
   position: relative;
@@ -125,7 +125,7 @@
 .sdash-card {
   background: var(--surface-bg, #fff);
   border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 16px;
+  border-radius: 4px;
   padding: 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -207,9 +207,13 @@
 
 /* Movers Grid */
 .sdash-movers-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 20px;
+}
+
+.sdash-mover-col:not(:first-child) {
+  margin-top: 10px;
 }
 
 .sdash-mover-label {
@@ -258,7 +262,7 @@
 .sdash-risk-bar-track {
   height: 6px;
   background: var(--border-color);
-  border-radius: 3px;
+  border-radius: 4px;
   overflow: hidden;
   margin-bottom: 4px;
 }

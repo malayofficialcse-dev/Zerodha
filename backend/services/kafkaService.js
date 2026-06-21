@@ -8,6 +8,12 @@ console.log(`[Kafka] Initializing client. Brokers: ${KAFKA_BROKERS}`);
 const kafka = new Kafka({
   clientId: "zerodha-clone-backend",
   brokers: [KAFKA_BROKERS],
+  connectionTimeout: 10000,   // 10s to establish TCP connection
+  requestTimeout: 60000,      // 60s for any single request (prevents timeout cascade)
+  retry: {
+    initialRetryTime: 300,
+    retries: 8,
+  },
   logCreator: () => (entry) => {
     const { namespace, level, label, log } = entry;
     const { message, ...extra } = log;
@@ -18,6 +24,7 @@ const kafka = new Kafka({
     }
   },
 });
+
 
 export const producer = kafka.producer({ retry: { retries: 5 } });
 export const consumer = kafka.consumer({ groupId: "realtime-chart-group" });
@@ -119,51 +126,64 @@ export const initKafkaConsumer = async (onMessageCallback) => {
 };
 
 /**
- * Helper to publish a tick.
- * - If Kafka producer is connected: sends to 'stock-ticks' topic (consumer picks it up → Socket.io)
- * - If Kafka is NOT connected: emits directly to Socket.io (graceful fallback)
+ * Publish a single tick (direct Socket.io fallback or Kafka).
+ * Prefer batchPublishTicks() when you have multiple ticks to send at once.
  */
 export const publishTick = async (tickData) => {
-  // FALLBACK: If Kafka producer or consumer is not connected, emit directly to socket.io
+  await batchPublishTicks([tickData]);
+};
+
+/**
+ * Batch-publish multiple ticks in a SINGLE Kafka producer.send() call.
+ * This is far more efficient than calling producer.send() per stock per second.
+ *
+ * - If Kafka producer is connected: sends all ticks as one batched request
+ * - If Kafka is NOT connected: emits each tick directly via Socket.io (graceful fallback)
+ */
+export const batchPublishTicks = async (ticksArray) => {
+  if (!ticksArray || ticksArray.length === 0) return;
+
+  // FALLBACK: emit directly to socket.io if Kafka is not connected
   if (!isProducerConnected) {
     const io = getIO();
     if (io) {
-      io.emit("tick", tickData);
+      for (const tickData of ticksArray) {
+        io.emit("tick", tickData);
 
-      // Also check alerts in fallback mode
-      checkAlerts(tickData, (alert, currentPrice) => {
-        io.emit("price-alert", {
-          ...alert._doc,
-          currentPrice,
+        checkAlerts(tickData, (alert, currentPrice) => {
+          io.emit("price-alert", { ...alert._doc, currentPrice });
         });
-      });
 
-      // Check intraday stop-loss / target in fallback mode
-      checkIntradayAlerts(tickData);
+        checkIntradayAlerts(tickData);
+      }
     }
     return;
   }
 
-  // Kafka path: produce to topic; consumer will forward to Socket.io
+  // Kafka path: send ALL ticks as a single batched produce request
   try {
     await producer.send({
       topic: "stock-ticks",
-      messages: [{ value: JSON.stringify(tickData) }],
+      messages: ticksArray.map((tickData) => ({
+        value: JSON.stringify(tickData),
+      })),
     });
-    publishCount++;
-    if (publishCount % 500 === 0) {
+    publishCount += ticksArray.length;
+    if (Math.floor(publishCount / 500) > Math.floor((publishCount - ticksArray.length) / 500)) {
       console.log(`[Kafka][Producer] Published ${publishCount} tick messages to 'stock-ticks' topic.`);
     }
   } catch (err) {
-    console.error("[Kafka][Producer] Publish error:", err.message);
-    // On publish failure, fallback to direct emit for this tick
+    console.error("[Kafka][Producer] Batch publish error:", err.message);
+    // On publish failure, fallback to direct emit for all ticks
     const io = getIO();
     if (io) {
-      io.emit("tick", tickData);
-      checkAlerts(tickData, (alert, currentPrice) => {
-        io.emit("price-alert", { ...alert._doc, currentPrice });
-      });
-      checkIntradayAlerts(tickData);
+      for (const tickData of ticksArray) {
+        io.emit("tick", tickData);
+        checkAlerts(tickData, (alert, currentPrice) => {
+          io.emit("price-alert", { ...alert._doc, currentPrice });
+        });
+        checkIntradayAlerts(tickData);
+      }
     }
   }
 };

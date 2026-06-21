@@ -100,7 +100,7 @@ const Dashboard = () => {
           <Route path="/charts" element={<Charts />} />
           <Route path="/alerts" element={<Alerts />} />
           <Route path="/profile" element={<UserProfile />} />
-          <Route path="/dashboard" element={<DashboardChart />} />
+          <Route path="/dashboard" element={<Summary />} />
 
         </Routes>
       </div>
